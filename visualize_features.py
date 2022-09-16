@@ -27,7 +27,7 @@ ftr = np.zeros((features.shape)) # クラスごと並び替え
 m = np.zeros((mu.shape))
 v = np.zeros((var.shape))
 for cls in range(7):
-    idx = [i for i, x in enumerate(names.tolist()) if x == cls]
+    idx = [i for i, x in enumerate(names.tolist()) if x == cls] # 特定のクラスのindexを抽出
     ftr[int(np.sum(clsnm)) : (int(np.sum(clsnm) + len(idx))), :] = features[idx, :]
     m[int(np.sum(clsnm)) : (int(np.sum(clsnm) + len(idx))), :] = mu[idx, :]
     v[int(np.sum(clsnm)) : (int(np.sum(clsnm) + len(idx))), :] = var[idx, :]
@@ -51,7 +51,6 @@ plt.show()
 plt.close()
 
 
-mu = pd.read_csv('mu_processed.csv')
 feat_reduced = TSNE(n_components=3).fit_transform(m)
 fig3 = plt.figure(figsize=(10.0, 10.0))
 ax = Axes3D(fig3)
@@ -66,7 +65,6 @@ plt.savefig(os.path.join(dir, "mu_tsne.png"))
 plt.show()
 plt.close()
 
-var = pd.read_csv('var_processed.csv')
 feat_reduced = TSNE(n_components=3).fit_transform(v)
 fig3 = plt.figure(figsize=(10.0, 10.0))
 ax = Axes3D(fig3)
