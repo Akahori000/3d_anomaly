@@ -10,7 +10,7 @@ from mpl_toolkits.mplot3d.axes3d import Axes3D
 
 from sklearn.manifold import TSNE
 
-dir = './feature/c_e_epoc_100_data7119/'
+dir = './feature/c_e_epoc_299_data7119/'
 
 features = pd.read_csv(dir + 'feature.csv')
 names = pd.read_csv(dir + 'name.csv')
@@ -39,7 +39,7 @@ num = np.array([0, clsnm[0], np.sum(clsnm[:2]), np.sum(clsnm[:3]), np.sum(clsnm[
 feat_reduced = TSNE(n_components=3).fit_transform(ftr)
 fig3 = plt.figure(figsize=(10.0, 10.0))
 ax = Axes3D(fig3)
-ax.scatter(feat_reduced[num[0]:num[1], 0], feat_reduced[num[0]:num[1], 1], feat_reduced[num[0]:num[1], 2], marker='.', c='blue') 
+ax.scatter(feat_reduced[num[0]:num[1], 0], feat_reduced[num[0]:num[1], 1], feat_reduced[num[0]:num[1], 2], marker='.', c='dodgerblue') 
 ax.scatter(feat_reduced[num[1]:num[2], 0], feat_reduced[num[1]:num[2], 1], feat_reduced[num[1]:num[2], 2], marker='.', c='green') 
 ax.scatter(feat_reduced[num[2]:num[3], 0], feat_reduced[num[2]:num[3], 1], feat_reduced[num[2]:num[3], 2], marker='.', c='purple') 
 ax.scatter(feat_reduced[num[3]:num[4], 0], feat_reduced[num[3]:num[4], 1], feat_reduced[num[3]:num[4], 2], marker='.', c='gray') 

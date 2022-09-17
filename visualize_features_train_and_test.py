@@ -10,10 +10,11 @@ from mpl_toolkits.mplot3d.axes3d import Axes3D
 
 from sklearn.manifold import TSNE
 
-traindir = './feature/c_e_epoc_299_data7119/'
-testdir=  './feature/c_e_epoc_299_data2034/'
+traindir = './feature/c_e_epoc_200_data7119/'
+testdir=  './feature/c_e_epoc_200_data2034/'
 
-dir = './feature/c_e_epoc_299_all/'
+
+dir = './feature/c_e_epoc_200_all/'
 if not os.path.exists(dir):
     os.makedirs(dir)
 
@@ -68,23 +69,20 @@ for cls in range(7):
 clsnm1 = np.array(clsnm1, dtype=int)
 num1 = np.array([0, clsnm1[0], np.sum(clsnm1[:2]), np.sum(clsnm1[:3]), np.sum(clsnm1[:4]), np.sum(clsnm1[:5]), np.sum(clsnm1[:6]), np.sum(clsnm1)])
 
-
-
 ftr = np.vstack([ftr, ftr1])
 #names = np.hstack([names, names1])
 m = np.vstack([m, m1])
 v = np.vstack([v, v1])
 
 num1 = num1 + np.sum(clsnm)
-num = np.hstack([num, num1])
+num = np.hstack([num[:7], num1])
 
-
-
+print(num)
 
 feat_reduced = TSNE(n_components=3).fit_transform(m)
 fig3 = plt.figure(figsize=(10.0, 10.0))
 ax = Axes3D(fig3)
-ax.scatter(feat_reduced[num[0]:num[1], 0], feat_reduced[num[0]:num[1], 1], feat_reduced[num[0]:num[1], 2], marker='.', c='blue') 
+ax.scatter(feat_reduced[num[0]:num[1], 0], feat_reduced[num[0]:num[1], 1], feat_reduced[num[0]:num[1], 2], marker='.', c='dodgerblue') 
 ax.scatter(feat_reduced[num[1]:num[2], 0], feat_reduced[num[1]:num[2], 1], feat_reduced[num[1]:num[2], 2], marker='.', c='green') 
 ax.scatter(feat_reduced[num[2]:num[3], 0], feat_reduced[num[2]:num[3], 1], feat_reduced[num[2]:num[3], 2], marker='.', c='purple') 
 ax.scatter(feat_reduced[num[3]:num[4], 0], feat_reduced[num[3]:num[4], 1], feat_reduced[num[3]:num[4], 2], marker='.', c='gray') 
@@ -103,32 +101,49 @@ plt.savefig(os.path.join(dir, "mu_tsne.png"))
 plt.show()
 plt.close()
 
-
-
 feat_reduced = TSNE(n_components=3).fit_transform(ftr)
 fig3 = plt.figure(figsize=(10.0, 10.0))
 ax = Axes3D(fig3)
-ax.scatter(feat_reduced[num[0]:num[1], 0], feat_reduced[num[0]:num[1], 1], feat_reduced[num[0]:num[1], 2], marker='.', c='blue') 
+ax.scatter(feat_reduced[num[0]:num[1], 0], feat_reduced[num[0]:num[1], 1], feat_reduced[num[0]:num[1], 2], marker='.', c='dodgerblue') 
 ax.scatter(feat_reduced[num[1]:num[2], 0], feat_reduced[num[1]:num[2], 1], feat_reduced[num[1]:num[2], 2], marker='.', c='green') 
 ax.scatter(feat_reduced[num[2]:num[3], 0], feat_reduced[num[2]:num[3], 1], feat_reduced[num[2]:num[3], 2], marker='.', c='purple') 
 ax.scatter(feat_reduced[num[3]:num[4], 0], feat_reduced[num[3]:num[4], 1], feat_reduced[num[3]:num[4], 2], marker='.', c='gray') 
 ax.scatter(feat_reduced[num[4]:num[5], 0], feat_reduced[num[4]:num[5], 1], feat_reduced[num[4]:num[5], 2], marker='.', c='yellow') 
 ax.scatter(feat_reduced[num[5]:num[6], 0], feat_reduced[num[5]:num[6], 1], feat_reduced[num[5]:num[6], 2], marker='.', c='pink') 
 ax.scatter(feat_reduced[num[6]:num[7], 0], feat_reduced[num[6]:num[7], 1], feat_reduced[num[6]:num[7], 2], marker='.', c='red') 
-plt.savefig(os.path.join(dir, "feature_tsne.png"))
+
+ax.scatter(feat_reduced[num[7]:num[8], 0], feat_reduced[num[7]:num[8], 1], feat_reduced[num[7]:num[8], 2], marker='.', c='skyblue') 
+ax.scatter(feat_reduced[num[8]:num[9], 0], feat_reduced[num[8]:num[9], 1], feat_reduced[num[8]:num[9], 2], marker='.', c='yellowgreen') 
+ax.scatter(feat_reduced[num[9]:num[10], 0], feat_reduced[num[9]:num[10], 1], feat_reduced[num[9]:num[10], 2], marker='.', c='navy') 
+ax.scatter(feat_reduced[num[10]:num[11], 0], feat_reduced[num[10]:num[11], 1], feat_reduced[num[10]:num[11], 2], marker='.', c='black') 
+ax.scatter(feat_reduced[num[11]:num[12], 0], feat_reduced[num[11]:num[12], 1], feat_reduced[num[11]:num[12], 2], marker='.', c='orange') 
+ax.scatter(feat_reduced[num[12]:num[13], 0], feat_reduced[num[12]:num[13], 1], feat_reduced[num[12]:num[13], 2], marker='.', c='magenta') 
+ax.scatter(feat_reduced[num[13]:num[14], 0], feat_reduced[num[13]:num[14], 1], feat_reduced[num[13]:num[14], 2], marker='.', c='brown') 
+plt.savefig(os.path.join(dir, "feat_tsne.png"))
 plt.show()
 plt.close()
+
+
 
 feat_reduced = TSNE(n_components=3).fit_transform(v)
 fig3 = plt.figure(figsize=(10.0, 10.0))
 ax = Axes3D(fig3)
-ax.scatter(feat_reduced[num[0]:num[1], 0], feat_reduced[num[0]:num[1], 1], feat_reduced[num[0]:num[1], 2], marker='.', c='blue') 
+ax.scatter(feat_reduced[num[0]:num[1], 0], feat_reduced[num[0]:num[1], 1], feat_reduced[num[0]:num[1], 2], marker='.', c='dodgerblue') 
 ax.scatter(feat_reduced[num[1]:num[2], 0], feat_reduced[num[1]:num[2], 1], feat_reduced[num[1]:num[2], 2], marker='.', c='green') 
 ax.scatter(feat_reduced[num[2]:num[3], 0], feat_reduced[num[2]:num[3], 1], feat_reduced[num[2]:num[3], 2], marker='.', c='purple') 
 ax.scatter(feat_reduced[num[3]:num[4], 0], feat_reduced[num[3]:num[4], 1], feat_reduced[num[3]:num[4], 2], marker='.', c='gray') 
 ax.scatter(feat_reduced[num[4]:num[5], 0], feat_reduced[num[4]:num[5], 1], feat_reduced[num[4]:num[5], 2], marker='.', c='yellow') 
 ax.scatter(feat_reduced[num[5]:num[6], 0], feat_reduced[num[5]:num[6], 1], feat_reduced[num[5]:num[6], 2], marker='.', c='pink') 
 ax.scatter(feat_reduced[num[6]:num[7], 0], feat_reduced[num[6]:num[7], 1], feat_reduced[num[6]:num[7], 2], marker='.', c='red') 
+
+ax.scatter(feat_reduced[num[7]:num[8], 0], feat_reduced[num[7]:num[8], 1], feat_reduced[num[7]:num[8], 2], marker='.', c='skyblue') 
+ax.scatter(feat_reduced[num[8]:num[9], 0], feat_reduced[num[8]:num[9], 1], feat_reduced[num[8]:num[9], 2], marker='.', c='yellowgreen') 
+ax.scatter(feat_reduced[num[9]:num[10], 0], feat_reduced[num[9]:num[10], 1], feat_reduced[num[9]:num[10], 2], marker='.', c='navy') 
+ax.scatter(feat_reduced[num[10]:num[11], 0], feat_reduced[num[10]:num[11], 1], feat_reduced[num[10]:num[11], 2], marker='.', c='black') 
+ax.scatter(feat_reduced[num[11]:num[12], 0], feat_reduced[num[11]:num[12], 1], feat_reduced[num[11]:num[12], 2], marker='.', c='orange') 
+ax.scatter(feat_reduced[num[12]:num[13], 0], feat_reduced[num[12]:num[13], 1], feat_reduced[num[12]:num[13], 2], marker='.', c='magenta') 
+ax.scatter(feat_reduced[num[13]:num[14], 0], feat_reduced[num[13]:num[14], 1], feat_reduced[num[13]:num[14], 2], marker='.', c='brown') 
 plt.savefig(os.path.join(dir, "var_tsne.png"))
 plt.show()
 plt.close()
+
