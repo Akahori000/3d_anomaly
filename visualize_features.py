@@ -10,7 +10,7 @@ from mpl_toolkits.mplot3d.axes3d import Axes3D
 
 from sklearn.manifold import TSNE
 
-dir = './feature/c_e_epoc_299_data7119/'
+dir = './feature/c_e_k_d_epoc150_data2034/'
 
 features = pd.read_csv(dir + 'feature.csv')
 names = pd.read_csv(dir + 'name.csv')
@@ -26,12 +26,12 @@ clsnm = np.zeros(7) # 各クラスのデータ数
 ftr = np.zeros((features.shape)) # クラスごと並び替え
 m = np.zeros((mu.shape))
 v = np.zeros((var.shape))
-for cls in range(7):
-    idx = [i for i, x in enumerate(names.tolist()) if x == cls] # 特定のクラスのindexを抽出
+for cnt in range(7):
+    idx = [i for i, x in enumerate(names.tolist()) if x == cnt] # 特定のクラスのindexを抽出
     ftr[int(np.sum(clsnm)) : (int(np.sum(clsnm) + len(idx))), :] = features[idx, :]
     m[int(np.sum(clsnm)) : (int(np.sum(clsnm) + len(idx))), :] = mu[idx, :]
     v[int(np.sum(clsnm)) : (int(np.sum(clsnm) + len(idx))), :] = var[idx, :]
-    clsnm[cls] = int(len(idx))
+    clsnm[cnt] = int(len(idx))
 
 clsnm = np.array(clsnm, dtype=int)
 num = np.array([0, clsnm[0], np.sum(clsnm[:2]), np.sum(clsnm[:3]), np.sum(clsnm[:4]), np.sum(clsnm[:5]), np.sum(clsnm[:6]), np.sum(clsnm)])

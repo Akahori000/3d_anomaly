@@ -10,11 +10,11 @@ from mpl_toolkits.mplot3d.axes3d import Axes3D
 
 from sklearn.manifold import TSNE
 
-traindir = './feature/c_e_epoc_200_data7119/'
-testdir=  './feature/c_e_epoc_200_data2034/'
+traindir = './feature/c_e_k_d_epoc_150_data7119/'
+testdir=  './feature/c_e_k_d_epoc_150_data2034/'
 
 
-dir = './feature/c_e_epoc_200_all/'
+dir = './feature/c_e_k_d_epoc_150_all/'
 if not os.path.exists(dir):
     os.makedirs(dir)
 
@@ -33,12 +33,12 @@ clsnm = np.zeros(7) # 各クラスのデータ数
 ftr = np.zeros((features.shape)) # クラスごと並び替え
 m = np.zeros((mu.shape))
 v = np.zeros((var.shape))
-for cls in range(7):
-    idx = [i for i, x in enumerate(names.tolist()) if x == cls] # 特定のクラスのindexを抽出
+for cnt in range(7):
+    idx = [i for i, x in enumerate(names.tolist()) if x == cnt] # 特定のクラスのindexを抽出
     ftr[int(np.sum(clsnm)) : (int(np.sum(clsnm) + len(idx))), :] = features[idx, :]
     m[int(np.sum(clsnm)) : (int(np.sum(clsnm) + len(idx))), :] = mu[idx, :]
     v[int(np.sum(clsnm)) : (int(np.sum(clsnm) + len(idx))), :] = var[idx, :]
-    clsnm[cls] = int(len(idx))
+    clsnm[cnt] = int(len(idx))
 
 clsnm = np.array(clsnm, dtype=int)
 num = np.array([0, clsnm[0], np.sum(clsnm[:2]), np.sum(clsnm[:3]), np.sum(clsnm[:4]), np.sum(clsnm[:5]), np.sum(clsnm[:6]), np.sum(clsnm)])
@@ -59,12 +59,12 @@ clsnm1 = np.zeros(7) # 各クラスのデータ数
 ftr1 = np.zeros((features1.shape)) # クラスごと並び替え
 m1 = np.zeros((mu1.shape))
 v1 = np.zeros((var1.shape))
-for cls in range(7):
-    idx = [i for i, x in enumerate(names1.tolist()) if x == cls] # 特定のクラスのindexを抽出
+for cnt in range(7):
+    idx = [i for i, x in enumerate(names1.tolist()) if x == cnt] # 特定のクラスのindexを抽出
     ftr1[int(np.sum(clsnm1)) : (int(np.sum(clsnm1) + len(idx))), :] = features1[idx, :]
     m1[int(np.sum(clsnm1)) : (int(np.sum(clsnm1) + len(idx))), :] = mu1[idx, :]
     v1[int(np.sum(clsnm1)) : (int(np.sum(clsnm1) + len(idx))), :] = var1[idx, :]
-    clsnm1[cls] = int(len(idx))
+    clsnm1[cnt] = int(len(idx))
 
 clsnm1 = np.array(clsnm1, dtype=int)
 num1 = np.array([0, clsnm1[0], np.sum(clsnm1[:2]), np.sum(clsnm1[:3]), np.sum(clsnm1[:4]), np.sum(clsnm1[:5]), np.sum(clsnm1[:6]), np.sum(clsnm1)])
