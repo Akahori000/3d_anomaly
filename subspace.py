@@ -15,8 +15,12 @@ from sklearn.metrics import auc, roc_curve
 from ksm_example import ksm_exp as ksm
 
 CLASS_NUM = 7
-dictionary_dir =  './feature/model1_airplane/c_k_epoc_299_data7119/'
-test_dir = './feature/model1_airplane/c_k_epoc_299_data2034/'
+#dictionary_dir =  './feature/model1_airplane/c_k_epoc_299_data7119/'
+#test_dir = './feature/model1_airplane/c_k_epoc_299_data2034/'
+
+dictionary_dir =  './data/calculated_features/model1_rifle/both_features/c_epoc_299_data7119/'
+test_dir = './data/calculated_features/model1_rifle/both_features/c_epoc_299_data2034/'
+
 
 if not os.path.exists(test_dir + 'pred/'):
     os.makedirs(test_dir + 'pred/')
