@@ -15,13 +15,18 @@ from sklearn.metrics import auc, roc_curve
 from ksm_example import ksm_exp as ksm
 
 CLASS_NUM = 7
-dictionary_dir =  './feature/model1_airplane/c_k_epoc_299_data7119/'
-test_dir = './feature/model1_airplane/c_k_epoc_299_data2034/'
+Anomaly_object = 'airplane' # ←ここでobject指定すること!
+dictionary_dir =  './feature/model1_'+ Anomaly_object + '/c_epoc_299_data7119/'
+test_dir = './feature/model1_'+ Anomaly_object + '/c_epoc_299_data2034/'
+knl_dir = test_dir + 'kernel_pred2/'
+
+dic_names = {'1622': 'lamp', '1323': 'chair', '1078':'table', '490':'car', '890':'sofa', '709': 'rifle', '1007': 'airplane'}
+dic_names_test = {'464': 'lamp', '378': 'chair', '308':'table', '140':'car', '254':'sofa', '202': 'rifle', '288': 'airplane'}
 
 if not os.path.exists(test_dir + 'pred/'):
     os.makedirs(test_dir + 'pred/')
-if not os.path.exists(test_dir + 'kernel_pred/'):
-    os.makedirs(test_dir + 'kernel_pred/')
+if not os.path.exists(knl_dir):
+    os.makedirs(knl_dir)
 
 # 部分空間の基底計算
 def calc_subspace(X, subdim): # Xは各列が１つのデータ
@@ -104,7 +109,42 @@ def get_features_and_sort(dir):
     num = np.array([0, clsnm[0], np.sum(clsnm[:2]), np.sum(clsnm[:3]), np.sum(clsnm[:4]), np.sum(clsnm[:5]), np.sum(clsnm[:6]), np.sum(clsnm)])
     label[num[6]: num[7]] = 1
 
-    return ftr, m, v, num, y, label   # feature, mu, var, y, label
+    return ftr, m, v, clsnm, num, y   # feature, mu, var, y 
+
+
+def set_anomaly_labels(ftr, clsnm, num, anomaly_obj):
+
+    anomaly_labels = np.zeros(len(ftr))
+
+    anomaly_num = [k for k, v in dic_names_test.items() if v == anomaly_obj]
+    anomaly_num = int(anomaly_num[0])
+    
+    for i in range(len(clsnm)):
+        if clsnm[i] == anomaly_num:
+            anomaly_labels[num[i]: num[i+1]] = 1 
+
+    return anomaly_labels
+
+
+def exclude_anomaly_obj(ftr, clsnm, num, anomaly_obj):
+
+    # object_name → data_size取り出し
+    anomaly_num = [k for k, v in dic_names.items() if v == anomaly_obj]
+    anomaly_num = int(anomaly_num[0])
+
+    # 
+    ftre = np.zeros((ftr.shape[0] - anomaly_num, ftr.shape[1]))
+    for i in range(len(num) - 1):
+        if (num[i + 1] - num[i]) == anomaly_num:
+            ftre = np.vstack((ftr[:num[i]], ftr[num[i+1]:]))
+            clsnm = np.delete(clsnm, i)
+    
+    num = np.array([0, clsnm[0], np.sum(clsnm[:2]), np.sum(clsnm[:3]), np.sum(clsnm[:4]), np.sum(clsnm[:5]), np.sum(clsnm)])
+
+    #print('exclude anomaly_obj (train)', anomaly_obj, anomaly_num, len(ftr)-len(ftre))
+
+    return ftre, clsnm, num
+
 
 def linear_subspace_test():
     # テスト開始
@@ -209,23 +249,48 @@ def linear_subspace_test():
 
 def kernel_subspace_test():
     # 辞書空間にするデータを取ってくる　データのならびはftr, mu, varの全データ×512がクラスラベル0~6順に並ぶ
-    ftr, mu, var, num, _, _ = get_features_and_sort(dictionary_dir)
+    ftr, mu, var, clsnm, num, _ = get_features_and_sort(dictionary_dir)
 
+    print('Anomaly_Class:', Anomaly_object)
+
+    #TrainData
+    print('TrainData: clsnm', clsnm, 'num', num, '\n', [dic_names[str(clsnm[k])] for k in range(CLASS_NUM)])
+
+    # TrainDataからAnomalyClassを排除
+    ftr, clsnm, num = exclude_anomaly_obj(ftr, clsnm, num, Anomaly_object)
+
+    subspace_class_num = CLASS_NUM - 1
+    #print('TrainData (without AnomalyClass): clsnm', clsnm, 'num', num, '\n', [dic_names[str(clsnm[k])] for k in range(subspace_class_num)])
+    print('\n<TrainData (without AnomalyClass):>')
+    for i in range(subspace_class_num):
+        print(clsnm[i], num[i], ':', num[i+1], dic_names[str(clsnm[i])])
+
+    # TrainDataをlistにまとめる
     X_train_ftr = []
     X_train_mu = []
     X_train_var = []
-    for i in range(CLASS_NUM):
+    for i in range(subspace_class_num):
         X_train_ftr.append((ftr[num[i]:num[i+1], :].T))
         X_train_mu.append((mu[num[i]:num[i+1], :].T))
         X_train_var.append((var[num[i]:num[i+1], :].T))
     
-    labels = list(range(CLASS_NUM)) # [0, ~ ,6]
+    labels = list(range(subspace_class_num)) # [0, ~ ,6]
         
-    # テストデータ
-    test_ftr, test_mu, test_var, test_num, y_test, anomaly_labels = get_features_and_sort(test_dir)
+    # TestDataを取ってきて、AnomalyClassのlabelを1にセット
+    test_ftr, test_mu, test_var, test_clsnm, test_num, y_test = get_features_and_sort(test_dir)
+    anomaly_labels = set_anomaly_labels(test_ftr, test_clsnm, test_num, Anomaly_object)
 
+    print('\n<Testdata>:')
+    for i in range(CLASS_NUM):
+        print(test_clsnm[i], test_num[i], ':', test_num[i+1], dic_names_test[str(test_clsnm[i])])
+    
+    print('\n<Traindata anomaly_labels>:')
+    for i, k, in enumerate(dic_names_test):
+        print(k, dic_names_test[str(test_clsnm[i])],'\t', anomaly_labels[test_num[i]])
 
-    ksm.calc_kernel_subspace_bases(X_train_ftr, labels, test_ftr.T, y_test, anomaly_labels, test_dir)
+    # kernel PCA
+    ksm.kernel_subspace_anomaly_detection(X_train_ftr, labels, test_ftr.T, y_test, anomaly_labels, knl_dir)
+    #ksm.calc_kernel_subspace_bases(X_train_ftr, labels, test_ftr.T, y_test, anomaly_labels, knl_dir)
 
     print('Done')
     

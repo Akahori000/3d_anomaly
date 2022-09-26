@@ -4,6 +4,7 @@ import time
 import numpy as np
 import pandas as pd
 from scipy.io import loadmat
+import matplotlib.pyplot as plt
 
 from sklearn.metrics import accuracy_score, f1_score
 from sklearn.model_selection import train_test_split
@@ -64,7 +65,60 @@ def calc_anomaly_score(kernel_similarities):
     return  anomaly_score
 
 
-def calc_kernel_subspace_bases(X_train, labels, X_test, y_test, anomaly_labels, test_dir):
+
+def kernel_subspace_anomaly_detection(X_train, labels, X_test, y_test, anomaly_labels, knl_dir):
+    n_subdims = range(1, 150, 1)
+    gammas = range(1, 300, 10)
+
+    df = pd.DataFrame(columns=["n_subdims", "gamma", "acc", "weighted_f1", "macro_f1", "fit_time", "predict_time"])
+    ftr_roc_auc = np.zeros((-(-(300-1)//10), 150))
+
+    for i, n_subdim in enumerate(n_subdims):
+        for j, gamma in enumerate(gammas):
+            kernel_bases = [
+                kn.kernel_subspace_bases(X_class, n_subdim, gamma) for X_class in X_train
+            ]
+            #print('kernel_basis', kernel_bases)
+            kernel_bases = np.array(kernel_bases)
+            #print(f"Kernel fit time: {fit_time}")
+
+            kernel_similarities = [
+                kn.kernel_similarity(_kernel_base, _X, X_test)
+                for _kernel_base, _X in zip(kernel_bases, X_train)
+            ]
+            kernel_similarities = np.vstack(kernel_similarities).T
+            #print('kernelsimilarities', kernel_similarities)
+
+            # 正常クラスのみでanomalyscoreを出す
+            pred = calc_anomaly_score(kernel_similarities[:, :(kernel_similarities.shape[1] - 1)])
+            
+            # AUCの計算
+            _min = np.array(min(pred))
+            _max = np.array(max(pred))
+
+            re_scaled = (pred - _min) / (_max - _min)
+            re_scaled = np.array(re_scaled, dtype=float)
+            fpr, tpr, _ = roc_curve(anomaly_labels, re_scaled)
+            ftr_roc_auc[j, i] = auc(fpr, tpr)
+            print(f"Subspace dimensions: {n_subdim}", f"Gamma: {gamma}", 'AUC', ftr_roc_auc[j, i])
+
+            plt.plot(fpr, tpr, marker='o')
+            plt.xlabel('FPR: False positive rate')
+            plt.ylabel('TPR: True positive rate')
+            plt.grid()
+            plt.savefig(knl_dir + 'ROCCurve_subdim' + str(n_subdim) + '_gamma' + str(gamma) + '.png')
+            plt.clf()
+            #plt.close()
+            
+            df3 = pd.DataFrame(np.vstack([anomaly_labels, re_scaled]).T)
+            df3.to_csv(knl_dir + 'auc_subdim' + str(n_subdim) + '_gamma' + str(gamma) +  '.csv')
+
+    df1 = pd.DataFrame(ftr_roc_auc)
+    df1.to_csv(knl_dir + 'auc.csv')
+
+
+
+def calc_kernel_subspace_bases(X_train, labels, X_test, y_test, anomaly_labels, knl_dir):
     n_subdims = range(1, 150, 1)
     gammas = range(1, 300, 10)
 
@@ -93,13 +147,27 @@ def calc_kernel_subspace_bases(X_train, labels, X_test, y_test, anomaly_labels, 
             #print('kernelsimilarities', kernel_similarities)
 
             # 正常クラスのみでanomalyscoreを出す
-            anomaly_score = calc_anomaly_score(kernel_similarities[:, :(kernel_similarities.shape[1] - 1)])
+            pred = calc_anomaly_score(kernel_similarities[:, :(kernel_similarities.shape[1] - 1)])
+            
             # AUCの計算
-            fpr, tpr, _ = roc_curve(anomaly_labels, anomaly_score)
+
+            _min = np.array(min(pred))
+            _max = np.array(max(pred))
+
+            re_scaled = (pred - _min) / (_max - _min)
+            re_scaled = np.array(re_scaled, dtype=float)
+            fpr, tpr, _ = roc_curve(anomaly_labels, re_scaled)
             ftr_roc_auc[j, i] = auc(fpr, tpr)
             print('AUC', ftr_roc_auc[j, i])
-            df3 = pd.DataFrame(np.vstack([anomaly_labels, anomaly_score]).T)
-            df3.to_csv(test_dir + 'kernel_pred/' + 'auc_subdim' + str(n_subdim) + '_gamma' + str(gamma) +  '.csv')
+
+            plt.plot(fpr, tpr, marker='o')
+            plt.xlabel('FPR: False positive rate')
+            plt.ylabel('TPR: True positive rate')
+            plt.grid()
+            plt.savefig(knl_dir + 'ROCCurve_subdim' + str(n_subdim) + '_gamma' + str(gamma) + '.png')
+            
+            df3 = pd.DataFrame(np.vstack([anomaly_labels, re_scaled]).T)
+            df3.to_csv(knl_dir + 'auc_subdim' + str(n_subdim) + '_gamma' + str(gamma) +  '.csv')
 
             predictions = fn.predict(kernel_similarities)
             predict_time = time.time() - start
@@ -119,7 +187,7 @@ def calc_kernel_subspace_bases(X_train, labels, X_test, y_test, anomaly_labels, 
                 "predict_time": predict_time,
             }, ignore_index=True)
 
-            df.to_csv(test_dir + 'kernel_pred/' + "kernel.csv", index=False)
+            df.to_csv(knl_dir + "kernel.csv", index=False)
 
     df1 = pd.DataFrame(ftr_roc_auc)
-    df1.to_csv(test_dir + 'kernel_pred/'  + 'auc.csv')
+    df1.to_csv(knl_dir + 'auc.csv')
