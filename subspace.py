@@ -15,6 +15,7 @@ from sklearn.metrics import auc, roc_curve
 from ksm_example import ksm_exp as ksm
 
 CLASS_NUM = 7
+<<<<<<< HEAD
 Anomaly_object = 'airplane' # ←ここでobject指定すること!
 dictionary_dir =  './feature/model1_'+ Anomaly_object + '/c_epoc_299_data7119/'
 test_dir = './feature/model1_'+ Anomaly_object + '/c_epoc_299_data2034/'
@@ -22,6 +23,14 @@ knl_dir = test_dir + 'kernel_pred2/'
 
 dic_names = {'1622': 'lamp', '1323': 'chair', '1078':'table', '490':'car', '890':'sofa', '709': 'rifle', '1007': 'airplane'}
 dic_names_test = {'464': 'lamp', '378': 'chair', '308':'table', '140':'car', '254':'sofa', '202': 'rifle', '288': 'airplane'}
+=======
+#dictionary_dir =  './feature/model1_airplane/c_k_epoc_299_data7119/'
+#test_dir = './feature/model1_airplane/c_k_epoc_299_data2034/'
+
+dictionary_dir =  './data/calculated_features/model1_rifle/both_features/c_epoc_299_data7119/'
+test_dir = './data/calculated_features/model1_rifle/both_features/c_epoc_299_data2034/'
+
+>>>>>>> 5e841a0e65d86df8c95ebe7eba9258044f65928c
 
 if not os.path.exists(test_dir + 'pred/'):
     os.makedirs(test_dir + 'pred/')
