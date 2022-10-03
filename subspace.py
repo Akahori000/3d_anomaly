@@ -11,31 +11,35 @@ from sklearn.metrics import confusion_matrix
 from sklearn.metrics import precision_score
 from sklearn.metrics import f1_score
 from sklearn.metrics import auc, roc_curve
+import sys
 
 from ksm_example import ksm_exp as ksm
 
+
 CLASS_NUM = 7
-<<<<<<< HEAD
-Anomaly_object = 'airplane' # ←ここでobject指定すること!
-dictionary_dir =  './feature/model1_'+ Anomaly_object + '/c_epoc_299_data7119/'
-test_dir = './feature/model1_'+ Anomaly_object + '/c_epoc_299_data2034/'
+args = sys.argv
+
+Anomaly_object = args[1]
+#Anomaly_object = 'airplane' # ←ここでobject指定すること!
+test_folder = args[2]
+#test_folder = 'c_epoc_299_data576' #←例
+
+dictionary_dir =  './data/calculated_features/model1_' + Anomaly_object + '/both_features/c_epoc_299_data7119/'
+test_dir = './data/calculated_features/model1_' + Anomaly_object + '/both_features/' + test_folder + '/'
 knl_dir = test_dir + 'kernel_pred2/'
+lnr_dir = test_dir + 'pred/'
+lnr_dir_hlf = test_dir + 'pred_NA_halfhalf/'
 
 dic_names = {'1622': 'lamp', '1323': 'chair', '1078':'table', '490':'car', '890':'sofa', '709': 'rifle', '1007': 'airplane'}
 dic_names_test = {'464': 'lamp', '378': 'chair', '308':'table', '140':'car', '254':'sofa', '202': 'rifle', '288': 'airplane'}
-=======
-#dictionary_dir =  './feature/model1_airplane/c_k_epoc_299_data7119/'
-#test_dir = './feature/model1_airplane/c_k_epoc_299_data2034/'
+names = ['lamp', 'chair', 'table', 'car', 'sofa', 'rifle', 'airplane']
 
-dictionary_dir =  './data/calculated_features/model1_rifle/both_features/c_epoc_299_data7119/'
-test_dir = './data/calculated_features/model1_rifle/both_features/c_epoc_299_data2034/'
-
->>>>>>> 5e841a0e65d86df8c95ebe7eba9258044f65928c
-
-if not os.path.exists(test_dir + 'pred/'):
-    os.makedirs(test_dir + 'pred/')
+if not os.path.exists(lnr_dir):
+    os.makedirs(lnr_dir)
 if not os.path.exists(knl_dir):
     os.makedirs(knl_dir)
+if not os.path.exists(lnr_dir_hlf):
+    os.makedirs(lnr_dir_hlf)
 
 # 部分空間の基底計算
 def calc_subspace(X, subdim): # Xは各列が１つのデータ
@@ -255,6 +259,134 @@ def linear_subspace_test():
     df.to_csv(test_dir + 'pred/000_Subdim_Result.csv')
 
 
+# 部分空間法で異常検知
+def linear_subspace_anomaly_detection():
+    # テスト開始
+    sub_dim = 40
+    train_ftr, _, _, clsnm, num, _ = get_features_and_sort(dictionary_dir)
+
+    print('Anomaly_Class:', Anomaly_object)
+
+    #TrainData
+    print('TrainData: clsnm', clsnm, 'num', num, '\n', [dic_names[str(clsnm[k])] for k in range(CLASS_NUM)])
+
+    # TrainDataからAnomalyClassを排除
+    ftr, clsnm, num = exclude_anomaly_obj(train_ftr, clsnm, num, Anomaly_object)
+    subspace_class_num = CLASS_NUM - 1
+
+    print('\n<TrainData (without AnomalyClass):>')
+    for i in range(subspace_class_num):
+        print(clsnm[i], num[i], ':', num[i+1], dic_names[str(clsnm[i])])
+
+    # テストデータ
+    test_ftr, _, _, test_clsnm, test_num, y = get_features_and_sort(test_dir)
+    anomaly_labels = set_anomaly_labels(test_ftr, test_clsnm, test_num, Anomaly_object)
+
+
+    if sum(test_clsnm) < 2034:
+        print('\n<Test_datanum & Test_datanum & Anomaly_Labels>:')
+        for i in range(CLASS_NUM):
+            print(names[i], test_clsnm[i],'\t',int(anomaly_labels[test_num[i]]))
+
+        lnr_dir = lnr_dir_hlf
+        if not os.path.exists(lnr_dir):
+            os.makedirs(lnr_dir)
+
+    else:
+        print('\n<Testdata>:')
+        for i in range(CLASS_NUM):
+            print(test_clsnm[i], test_num[i], ':', test_num[i+1], dic_names_test[str(test_clsnm[i])])
+        
+        print('\n<Traindata anomaly_labels>:')
+        for i, k, in enumerate(dic_names_test):
+            print(k, dic_names_test[str(test_clsnm[i])],'\t', anomaly_labels[test_num[i]])
+
+
+    subdim_result = np.zeros((sub_dim + 1, 2))  #subdim, auc
+
+    # 部分空間の次元を変化させてテスト
+    for subdim in (n+1 for n in range(sub_dim)):
+        # 辞書データ
+        dic_ftr_bases = np.zeros((subspace_class_num, ftr.shape[1], subdim))
+
+        for i in range(subspace_class_num):
+            dic_ftr_bases[i] = calc_subspace(ftr[num[i]:num[i+1], :].T, subdim)
+
+        # 各テストデータで行う
+        testdt_num = test_ftr.shape[0]
+        ftr_similarity = np.zeros((testdt_num, subspace_class_num))
+
+        ftr_score = np.zeros(testdt_num)
+
+        for i in range(testdt_num):  # 全データ
+            for j in range(subspace_class_num):  # 各クラス
+                ftr_similarity[i, j] = cos_sim((test_ftr[i, :].T).reshape(test_ftr.shape[1], 1), dic_ftr_bases[j])
+
+            # 異常度の計算　 1- (テストデータと辞書空間のcos類似度の最大になるクラスのcos類似度)
+            ftr_score[i] = 1 - max(ftr_similarity[i,:])
+
+        # AUCの計算
+        fpr, tpr, thresh = roc_curve(anomaly_labels, ftr_score)
+        ftr_roc_auc = auc(fpr, tpr)
+
+        df = pd.DataFrame(ftr_similarity)
+        df.to_csv(lnr_dir + 'ftr_similarity_' + str(subdim) + '.csv')
+        df = pd.DataFrame(list(zip(y, anomaly_labels, ftr_score)))
+        df.to_csv(lnr_dir + '/ftr_score_' + str(subdim) + ".csv")
+        df = pd.DataFrame(thresh)
+        df.to_csv(lnr_dir + '/ftr_thresh_' + str(subdim) + ".csv")
+
+        subdim_result[subdim, 0] = subdim
+        subdim_result[subdim, 1] = ftr_roc_auc
+
+        print('subdim = ', subdim, ', roc = ', ftr_roc_auc)
+
+    df = pd.DataFrame(subdim_result)
+    df.to_csv(lnr_dir + '000_Subdim_Result.csv')
+    return(lnr_dir)
+
+# 最大のAUCを持つ条件のAnomalyScoreのcsvからROCカーブ、Thresh、AnomalyScoreのグラフを描画
+def get_the_max_auc_roc(file_dir):
+    print(Anomaly_object)
+    dt = pd.read_csv(file_dir + '000_Subdim_Result.csv')
+    temp = dt.values[1:,-1:]
+    subdim = ([i for i, x in enumerate(temp) if x == max(temp)])[0] + 1 # AUCが最大のときの部分空間の次元
+    sim = pd.read_csv(file_dir + '/ftr_score_' + str(subdim) + ".csv")
+    anomaly_labels = sim.iloc[:,-2].to_numpy()
+    anomaly_scores = sim.iloc[:,-1].to_numpy()
+
+    # AUCの計算
+    fpr, tpr, thresh = roc_curve(anomaly_labels, anomaly_scores)
+    ftr_roc_auc = auc(fpr, tpr)
+    print(ftr_roc_auc)
+    
+    plt.plot(fpr, tpr, marker='o')
+    plt.xlabel('FPR: False positive rate')
+    plt.ylabel('TPR: True positive rate')
+    plt.title('ROC Curve')
+    plt.grid()
+    plt.savefig(file_dir + '001_linearSM_AUCmax_ROC_subdim' + str(subdim) + '_auc' + str(round(ftr_roc_auc, 4)) + '.png')
+    plt.clf()
+
+
+    plt.plot(np.array(range(len(thresh))), thresh, marker='o')
+    plt.ylabel('Threshold')
+    plt.title('Threshold')
+    plt.grid()
+    plt.savefig(file_dir + '002_linearSM_AUCmax_thresh_subdim' + str(subdim) + '_auc' + str(round(ftr_roc_auc, 4)) + '.png')
+    plt.clf()
+
+    plt.plot(np.array(range(len(anomaly_scores))), anomaly_scores, marker='o')
+    plt.ylabel('anomaly_scores')
+    plt.title('anomaly_scores')
+    plt.xlim(0, len(anomaly_scores))
+    plt.ylim(0, 1)
+    plt.grid()
+    plt.savefig(file_dir + '003_linearSM_AUCmax_thresh_scores' + str(subdim) + '_auc' + str(round(ftr_roc_auc, 4)) + '.png')
+    plt.clf()
+
+    return(dt)
+
 
 def kernel_subspace_test():
     # 辞書空間にするデータを取ってくる　データのならびはftr, mu, varの全データ×512がクラスラベル0~6順に並ぶ
@@ -289,13 +421,22 @@ def kernel_subspace_test():
     test_ftr, test_mu, test_var, test_clsnm, test_num, y_test = get_features_and_sort(test_dir)
     anomaly_labels = set_anomaly_labels(test_ftr, test_clsnm, test_num, Anomaly_object)
 
-    print('\n<Testdata>:')
-    for i in range(CLASS_NUM):
-        print(test_clsnm[i], test_num[i], ':', test_num[i+1], dic_names_test[str(test_clsnm[i])])
-    
-    print('\n<Traindata anomaly_labels>:')
-    for i, k, in enumerate(dic_names_test):
-        print(k, dic_names_test[str(test_clsnm[i])],'\t', anomaly_labels[test_num[i]])
+    if sum(test_clsnm) < 2034:
+        print('\n<Test_datanum & Test_datanum & Anomaly_Labels>:')
+        for i in range(CLASS_NUM):
+            print(names[i], test_clsnm[i],'\t',int(anomaly_labels[test_num[i]]))
+
+        lnr_dir = lnr_dir_hlf
+        if not os.path.exists(lnr_dir):
+            os.makedirs(lnr_dir)
+    else:
+        print('\n<Testdata>:')
+        for i in range(CLASS_NUM):
+            print(test_clsnm[i], test_num[i], ':', test_num[i+1], dic_names_test[str(test_clsnm[i])])
+        
+        print('\n<Traindata anomaly_labels>:')
+        for i, k, in enumerate(dic_names_test):
+            print(k, dic_names_test[str(test_clsnm[i])],'\t', anomaly_labels[test_num[i]])
 
     # kernel PCA
     ksm.kernel_subspace_anomaly_detection(X_train_ftr, labels, test_ftr.T, y_test, anomaly_labels, knl_dir)
@@ -304,29 +445,14 @@ def kernel_subspace_test():
     print('Done')
     
 
-kernel_subspace_test()
 
+if Anomaly_object in names:
 
-# for i in range (CLASS_NUM):
-#     dt = ftr[num[i]:num[i+1], :].T
-#     test_ftr_bases[i] = calc_subspace(ftr[num[i]:num[i+1], :].T, subdim)
-#     test_m_bases[i] = calc_subspace(mu[num[i]:num[i+1], :].T, subdim)
-#     test_v_bases[i] = calc_subspace(var[num[i]:num[i+1], :].T, subdim)
+    #file_dir = linear_subspace_anomaly_detection()
+    #print(file_dir)
+    #get_the_max_auc_roc(file_dir) # このfile_dirは'000_Subdim_Result.csv'のある場所　AUCの測り方によってちがう
+    
+    kernel_subspace_test()
+else:
+    print('command line input error')
 
-
-
-# # 類似度計算
-# ftr_sim = np.zeros((CLASS_NUM, CLASS_NUM))
-# m_sim = np.zeros((CLASS_NUM, CLASS_NUM))
-# v_sim = np.zeros((CLASS_NUM, CLASS_NUM))
-# for i in range (CLASS_NUM):
-#     for j in range (CLASS_NUM):
-#         ftr_sim[i,j] = calc_similarity(test_ftr_bases[i], dic_ftr_bases[j])
-#         m_sim[i,j] = calc_similarity(test_m_bases[i], dic_m_bases[j])
-#         v_sim[i,j] = calc_similarity(test_v_bases[i], dic_v_bases[j])
-
-
-# for i in range(CLASS_NUM):
-#     print('ftr_sim', ftr_sim[i,:], np.argmax(ftr_sim[i,:]))
-#     print('m_sim', m_sim[i,:], np.argmax(m_sim[i,:]))
-#     print('v_sim', v_sim[i,:], np.argmax(v_sim[i,:]))

@@ -4,6 +4,7 @@ import time
 import numpy as np
 import pandas as pd
 from scipy.io import loadmat
+import matplotlib; matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
 from sklearn.metrics import accuracy_score, f1_score
@@ -67,11 +68,15 @@ def calc_anomaly_score(kernel_similarities):
 
 
 def kernel_subspace_anomaly_detection(X_train, labels, X_test, y_test, anomaly_labels, knl_dir):
+    #n_subdims = range(1, 150, 1)
+    #gammas = range(1, 300, 10)
+
     n_subdims = range(1, 150, 1)
     gammas = range(1, 300, 10)
 
     df = pd.DataFrame(columns=["n_subdims", "gamma", "acc", "weighted_f1", "macro_f1", "fit_time", "predict_time"])
     ftr_roc_auc = np.zeros((-(-(300-1)//10), 150))
+    thresh = np.zeros((-(-(300-1)//10), 150))
 
     for i, n_subdim in enumerate(n_subdims):
         for j, gamma in enumerate(gammas):
@@ -98,20 +103,22 @@ def kernel_subspace_anomaly_detection(X_train, labels, X_test, y_test, anomaly_l
 
             re_scaled = (pred - _min) / (_max - _min)
             re_scaled = np.array(re_scaled, dtype=float)
-            fpr, tpr, _ = roc_curve(anomaly_labels, re_scaled)
+            fpr, tpr, th = roc_curve(anomaly_labels, re_scaled)
             ftr_roc_auc[j, i] = auc(fpr, tpr)
             print(f"Subspace dimensions: {n_subdim}", f"Gamma: {gamma}", 'AUC', ftr_roc_auc[j, i])
 
-            plt.plot(fpr, tpr, marker='o')
-            plt.xlabel('FPR: False positive rate')
-            plt.ylabel('TPR: True positive rate')
-            plt.grid()
-            plt.savefig(knl_dir + 'ROCCurve_subdim' + str(n_subdim) + '_gamma' + str(gamma) + '.png')
-            plt.clf()
-            #plt.close()
+            # plt.plot(fpr, tpr, marker='o')
+            # plt.xlabel('FPR: False positive rate')
+            # plt.ylabel('TPR: True positive rate')
+            # plt.grid()
+            # plt.savefig(knl_dir + 'ROCCurve_subdim' + str(n_subdim) + '_gamma' + str(gamma) + '.png')
+            # plt.clf()
+
             
             df3 = pd.DataFrame(np.vstack([anomaly_labels, re_scaled]).T)
             df3.to_csv(knl_dir + 'auc_subdim' + str(n_subdim) + '_gamma' + str(gamma) +  '.csv')
+            df3 = pd.DataFrame(th)
+            df3.to_csv(knl_dir + 'thresh_subdim' + str(n_subdim) + '_gamma' + str(gamma) +  '.csv')
 
     df1 = pd.DataFrame(ftr_roc_auc)
     df1.to_csv(knl_dir + 'auc.csv')
@@ -190,4 +197,4 @@ def calc_kernel_subspace_bases(X_train, labels, X_test, y_test, anomaly_labels, 
             df.to_csv(knl_dir + "kernel.csv", index=False)
 
     df1 = pd.DataFrame(ftr_roc_auc)
-    df1.to_csv(knl_dir + 'auc.csv')
+    df1.to_csv(knl_dir + 'auc1.csv')
