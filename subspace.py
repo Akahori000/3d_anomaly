@@ -13,12 +13,14 @@ from sklearn.metrics import f1_score
 from sklearn.metrics import auc, roc_curve
 import sys
 
+
+
+
 from ksm_example import ksm_exp as ksm
 
 
 CLASS_NUM = 7
 args = sys.argv
-
 Anomaly_object = args[1]
 #Anomaly_object = 'airplane' # ←ここでobject指定すること!
 test_folder = args[2]
@@ -28,10 +30,11 @@ dictionary_dir =  './data/calculated_features/model1_' + Anomaly_object + '/both
 test_dir = './data/calculated_features/model1_' + Anomaly_object + '/both_features/' + test_folder + '/'
 knl_dir = test_dir + 'kernel_pred2/'
 lnr_dir = test_dir + 'pred/'
-lnr_dir_hlf = test_dir + 'pred_NA_halfhalf/'
+lnr_dir_hlf = test_dir + 'pred_NA_halfhalf2/' # これが2の方が|| A@A.T@x|| で求めた方
 
 dic_names = {'1622': 'lamp', '1323': 'chair', '1078':'table', '490':'car', '890':'sofa', '709': 'rifle', '1007': 'airplane'}
-dic_names_test = {'464': 'lamp', '378': 'chair', '308':'table', '140':'car', '254':'sofa', '202': 'rifle', '288': 'airplane'}
+#dic_names_test = {'464': 'lamp', '378': 'chair', '308':'table', '140':'car', '254':'sofa', '202': 'rifle', '288': 'airplane'}
+dic_names_test = {'232': 'lamp', '189': 'chair', '154':'table', '70':'car', '127':'sofa', '102': 'rifle', '144': 'airplane'} # val用
 names = ['lamp', 'chair', 'table', 'car', 'sofa', 'rifle', 'airplane']
 
 if not os.path.exists(lnr_dir):
@@ -73,6 +76,11 @@ def cos_sim(input_feature, basis_vector):
         sim[i] = (np.dot(input_feature.T, basis_vector[:,i]) / (np.linalg.norm(input_feature) * np.linalg.norm(basis_vector[:,i])))**2      # cos^2θ マイナスなってはいけないので
     sim_ave = np.average(sim)
     return(sim_ave)
+
+# 金井さんおすすめ基底とベクトルの射影長求める手法
+def calc_projection_len(input_vector, basis_vector):
+    norm = np.linalg.norm(basis_vector @ basis_vector.T @ input_vector, axis=0)
+    return(norm)
 
 # 類似度計算 部分空間同士の比較 これはds1がデータ複数ないと使えない
 def calc_sim2(ds1, ds2):
@@ -136,6 +144,14 @@ def set_anomaly_labels(ftr, clsnm, num, anomaly_obj):
         if clsnm[i] == anomaly_num:
             anomaly_labels[num[i]: num[i+1]] = 1 
 
+    return anomaly_labels
+
+def set_anomaly_labels_simple(ftr, clsnm, num, anomaly_obj):
+
+    anomaly_labels = np.zeros(len(ftr))
+
+    anomaly_num = names.index(anomaly_obj)
+    anomaly_labels[num[anomaly_num]: num[anomaly_num+1]] = 1 
     return anomaly_labels
 
 
@@ -320,18 +336,29 @@ def linear_subspace_anomaly_detection():
 
         for i in range(testdt_num):  # 全データ
             for j in range(subspace_class_num):  # 各クラス
-                ftr_similarity[i, j] = cos_sim((test_ftr[i, :].T).reshape(test_ftr.shape[1], 1), dic_ftr_bases[j])
+                ftr_similarity[i, j] = calc_projection_len((test_ftr[i, :].T).reshape(test_ftr.shape[1], 1), dic_ftr_bases[j])
+                #print(ftr_similarity[i, j])
+
+                #ftr_similarity[i, j] = cos_sim((test_ftr[i, :].T).reshape(test_ftr.shape[1], 1), dic_ftr_bases[j])
 
             # 異常度の計算　 1- (テストデータと辞書空間のcos類似度の最大になるクラスのcos類似度)
             ftr_score[i] = 1 - max(ftr_similarity[i,:])
 
+
+        # anomaly_scoreを0~1に正規化
+        _min = np.array(min(ftr_score))
+        _max = np.array(max(ftr_score))
+
+        re_scaled = (ftr_score - _min) / (_max - _min)
+        re_scaled = np.array(re_scaled, dtype=float)
+
         # AUCの計算
-        fpr, tpr, thresh = roc_curve(anomaly_labels, ftr_score)
+        fpr, tpr, thresh = roc_curve(anomaly_labels, re_scaled)
         ftr_roc_auc = auc(fpr, tpr)
 
         df = pd.DataFrame(ftr_similarity)
         df.to_csv(lnr_dir + 'ftr_similarity_' + str(subdim) + '.csv')
-        df = pd.DataFrame(list(zip(y, anomaly_labels, ftr_score)))
+        df = pd.DataFrame(list(zip(y, anomaly_labels, re_scaled)))
         df.to_csv(lnr_dir + '/ftr_score_' + str(subdim) + ".csv")
         df = pd.DataFrame(thresh)
         df.to_csv(lnr_dir + '/ftr_thresh_' + str(subdim) + ".csv")
@@ -345,6 +372,7 @@ def linear_subspace_anomaly_detection():
     df.to_csv(lnr_dir + '000_Subdim_Result.csv')
     return(lnr_dir)
 
+
 # 最大のAUCを持つ条件のAnomalyScoreのcsvからROCカーブ、Thresh、AnomalyScoreのグラフを描画
 def get_the_max_auc_roc(file_dir):
     print(Anomaly_object)
@@ -356,7 +384,15 @@ def get_the_max_auc_roc(file_dir):
     anomaly_scores = sim.iloc[:,-1].to_numpy()
 
     # AUCの計算
-    fpr, tpr, thresh = roc_curve(anomaly_labels, anomaly_scores)
+    _min = np.array(min(anomaly_scores))
+    _max = np.array(max(anomaly_scores))
+
+    re_scaled = (anomaly_scores - _min) / (_max - _min)
+    re_scaled = np.array(re_scaled, dtype=float)
+
+
+    # AUCの計算
+    fpr, tpr, thresh = roc_curve(anomaly_labels, re_scaled)
     ftr_roc_auc = auc(fpr, tpr)
     print(ftr_roc_auc)
     
@@ -376,10 +412,10 @@ def get_the_max_auc_roc(file_dir):
     plt.savefig(file_dir + '002_linearSM_AUCmax_thresh_subdim' + str(subdim) + '_auc' + str(round(ftr_roc_auc, 4)) + '.png')
     plt.clf()
 
-    plt.plot(np.array(range(len(anomaly_scores))), anomaly_scores, marker='o')
+    plt.plot(np.array(range(len(re_scaled))), re_scaled, marker='o')
     plt.ylabel('anomaly_scores')
     plt.title('anomaly_scores')
-    plt.xlim(0, len(anomaly_scores))
+    plt.xlim(0, len(re_scaled))
     plt.ylim(0, 1)
     plt.grid()
     plt.savefig(file_dir + '003_linearSM_AUCmax_thresh_scores' + str(subdim) + '_auc' + str(round(ftr_roc_auc, 4)) + '.png')
@@ -445,7 +481,6 @@ def kernel_subspace_test():
     print('Done')
     
 
-
 if Anomaly_object in names:
 
     #file_dir = linear_subspace_anomaly_detection()
@@ -456,3 +491,20 @@ if Anomaly_object in names:
 else:
     print('command line input error')
 
+
+# testn = {'lamp':'928', 'chair':'756', 'table':'', 'car':'280', 'sofa':'508', 'rifle':'404', 'airplane':'576'}
+# names = ['lamp', 'chair', 'table', 'car', 'sofa', 'rifle', 'airplane']
+# epoclist = [150, 200, 250, 299]
+
+# for i in range(CLASS_NUM):
+#     Anomaly_object = names[i]
+#     if Anomaly_object != 'table':    #tableはまだ学習できてないので
+#         for j in range(4):
+#             epocn = epoclist[j]
+#             epoc = str(epocn)    # 150, 200, 250, 299
+
+
+#             path = './data/calculated_features/model1_' + Anomaly_object + '/both_features/c_epoc_' + epoc + '_data' + testn[Anomaly_object] + '/'
+#             print(path)
+#             file_dir = path + 'pred_NA_halfhalf/'
+#             get_the_max_auc_roc(file_dir)
