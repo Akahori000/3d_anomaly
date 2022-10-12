@@ -1,3 +1,5 @@
+## kernel結果を可視化など
+
 import numpy as np
 import pandas as pd
 import os
@@ -13,7 +15,9 @@ from sklearn.metrics import auc, roc_curve
 import sys
 
 CLASS_NUM = 7
-testn = {'lamp':'928', 'chair':'756', 'table':'', 'car':'280', 'sofa':'508', 'rifle':'404', 'airplane':'576'}
+testn = {'lamp':'928', 'chair':'756', 'table':'', 'car':'280', 'sofa':'508', 'rifle':'404', 'airplane':'576'} # test のとき
+valn = {'lamp':'464', 'chair':'378', 'table':'', 'car':'140', 'sofa':'254', 'rifle':'204', 'airplane':'288'} # val のとき
+
 names = ['lamp', 'chair', 'table', 'car', 'sofa', 'rifle', 'airplane']
 epoclist = [150, 200, 250, 299]
 
@@ -92,47 +96,193 @@ def draw_auc_roc_thresh(anomaly_labels, anomaly_scores, subdim, gamma, savepath)
     plt.xlim(0, len(anomaly_scores))
     plt.ylim(0, 1)
     plt.grid()
-    plt.savefig(savepath + '003_linearSM_AUCmax_thresh_scores' + str(subdim) + '_gamma' + str(gamma) + '_auc' + str(round(ftr_roc_auc, 4)) + '.png')
+    plt.savefig(savepath + '003_linearSM_AUCmax_score_subdim' + str(subdim) + '_gamma' + str(gamma) + '_auc' + str(round(ftr_roc_auc, 4)) + '.png')
     plt.clf()
 
-arr = np.zeros((4, CLASS_NUM))
 
-for i in range(CLASS_NUM):
-    anomaly_class = names[i]
-    if anomaly_class != 'table':    #tableはまだ学習できてないので
-        for j in range(4):
-            epocn = epoclist[j]
-            epoc = str(epocn)    # 150, 200, 250, 299
+def draw_auc_roc_thresh_test(anomaly_labels, anomaly_scores, subdim, gamma, savepath):
+
+    # AUCの計算
+    fpr, tpr, thresh = roc_curve(anomaly_labels, anomaly_scores)
+    ftr_roc_auc = auc(fpr, tpr)
+    print('test', ftr_roc_auc)
+    
+    plt.plot(fpr, tpr, marker='o')
+    plt.xlabel('FPR: False positive rate')
+    plt.ylabel('TPR: True positive rate')
+    plt.title('ROC Curve')
+    plt.grid()
+    plt.savefig(savepath + '000_linearSM_AUCmax_ROC_subdim' + str(subdim) + '_gamma' + str(gamma) + '_auc' + str(round(ftr_roc_auc, 4)) + '.png')
+    plt.clf()
 
 
-            path = './data/calculated_features/model1_' + anomaly_class + '/both_features/c_epoc_' + epoc + '_data' + testn[anomaly_class] + '/'
-            print(path)
-            kernel_path = path + 'kernel_pred2/'
-            auc_path = kernel_path + 'auc.csv'
+    plt.plot(np.array(range(len(thresh))), thresh, marker='o')
+    plt.ylabel('Threshold')
+    plt.title('Threshold')
+    plt.grid()
+    plt.savefig(savepath + '000_linearSM_AUCmax_thresh_subdim' + str(subdim) + '_gamma' + str(gamma) + '_auc' + str(round(ftr_roc_auc, 4)) + '.png')
+    plt.clf()
+
+    plt.plot(np.array(range(len(anomaly_scores))), anomaly_scores, marker='o')
+    plt.ylabel('anomaly_scores')
+    plt.title('anomaly_scores')
+    plt.xlim(0, len(anomaly_scores))
+    plt.ylim(0, 1)
+    plt.grid()
+    plt.savefig(savepath + '000_linearSM_AUCmax_score_subdim' + str(subdim) + '_gamma' + str(gamma) + '_auc' + str(round(ftr_roc_auc, 4)) + '.png')
+    plt.clf()
+    
+    return ftr_roc_auc
 
 
-            df = pd.read_csv(auc_path)
-            aucs = df.iloc[:, 1:-1].values.tolist()
-            # 最大値とそのindex
-            max_auc = np.max(aucs)
-            idx = np.argwhere(aucs == max_auc).reshape(2)
-            print(max_auc, idx)
-            arr[j, i] = max_auc
+def draw_auc_roc_thresh_test_linear(anomaly_labels, anomaly_scores, subdim, savepath):
 
-            # subdimとgamma
-            subdim = idx[1] + 1
-            gamma = idx[0] * 10 + 1
-            print('subdim:', subdim, 'gamma:', gamma)
-            ascr_path = kernel_path + 'auc_subdim' + str(subdim) + '_gamma' + str(gamma) + '.csv'
+    # AUCの計算
+    fpr, tpr, thresh = roc_curve(anomaly_labels, anomaly_scores)
+    ftr_roc_auc = auc(fpr, tpr)
+    print('test', ftr_roc_auc)
+    
+    plt.plot(fpr, tpr, marker='o')
+    plt.xlabel('FPR: False positive rate')
+    plt.ylabel('TPR: True positive rate')
+    plt.title('ROC Curve')
+    plt.grid()
+    plt.savefig(savepath + '000_linearSM_AUCmax_ROC_subdim' + str(subdim) + '_auc' + str(round(ftr_roc_auc, 4)) + '.png')
+    plt.clf()
 
-            ascr = pd.read_csv(ascr_path)
-            anomaly_score = ascr.iloc[:, -1].values
-            #print(anomaly_score)
 
-            test_ftr, _, _, test_clsnm, test_num, y = get_features_and_sort(path)
-            anomaly_labels = set_anomaly_labels(test_ftr, test_clsnm, test_num, anomaly_class)
+    plt.plot(np.array(range(len(thresh))), thresh, marker='o')
+    plt.ylabel('Threshold')
+    plt.title('Threshold')
+    plt.grid()
+    plt.savefig(savepath + '000_linearSM_AUCmax_thresh_subdim' + str(subdim) + '_auc' + str(round(ftr_roc_auc, 4)) + '.png')
+    plt.clf()
 
-            draw_auc_roc_thresh(anomaly_labels, anomaly_score, subdim, gamma, kernel_path)
+    plt.plot(np.array(range(len(anomaly_scores))), anomaly_scores, marker='o')
+    plt.ylabel('anomaly_scores')
+    plt.title('anomaly_scores')
+    plt.xlim(0, len(anomaly_scores))
+    plt.ylim(0, 1)
+    plt.grid()
+    plt.savefig(savepath + '000_linearSM_AUCmax_score_subdim' + str(subdim) + '_auc' + str(round(ftr_roc_auc, 4)) + '.png')
+    plt.clf()
+    
+    return ftr_roc_auc
 
-df = pd.DataFrame(arr)
-df.to_csv('./data/calculated_features/00_result/kernel_result.csv')
+
+def kernelSM_data_analyze():
+    arr = np.zeros((4, CLASS_NUM))
+    arr_test = np.zeros((4, CLASS_NUM))
+
+    for i in range(CLASS_NUM):
+        #anomaly_class = names[i]
+        anomaly_class = 'car'
+        if anomaly_class != 'table':    #tableはまだ学習できてないので
+            for j in range(4):
+                epocn = epoclist[j]
+                epoc = str(epocn)    # 150, 200, 250, 299
+
+
+                path = './data/calculated_features/model1_' + anomaly_class + '/both_features/c_epoc_' + epoc + '_data' + valn[anomaly_class] + '/'
+                print(path)
+                kernel_path = path + 'kernel_pred2/'
+                auc_path = kernel_path + 'auc.csv'
+
+
+                df = pd.read_csv(auc_path)
+                aucs = df.iloc[:, 1:-1].values.tolist()
+                # 最大値とそのindex
+                max_auc = np.max(aucs)
+                idx = np.argwhere(aucs == max_auc).reshape(2)
+                print(max_auc, idx)
+                arr[j, i] = max_auc
+
+                # subdimとgamma
+                subdim = idx[1] + 1
+                gamma = idx[0] * 10 + 1
+                print('subdim:', subdim, 'gamma:', gamma)
+                ascr_path = kernel_path + 'auc_subdim' + str(subdim) + '_gamma' + str(gamma) + '.csv'
+
+                ascr = pd.read_csv(ascr_path)
+                anomaly_score = ascr.iloc[:, -1].values
+                #print(anomaly_score)
+
+                test_ftr, _, _, test_clsnm, test_num, y = get_features_and_sort(path)
+                anomaly_labels = set_anomaly_labels(test_ftr, test_clsnm, test_num, anomaly_class)
+
+                draw_auc_roc_thresh(anomaly_labels, anomaly_score, subdim, gamma, kernel_path)
+
+                #valから求めたsubdimとgammaからaucなど求める
+                path = './data/calculated_features/model1_' + anomaly_class + '/both_features/c_epoc_' + epoc + '_data' + testn[anomaly_class] + '/'
+                kernel_path = path + 'kernel_pred2/'
+                ascr_path = kernel_path + 'auc_subdim' + str(subdim) + '_gamma' + str(gamma) + '.csv'
+                print(ascr_path)
+                ascr = pd.read_csv(ascr_path)
+                anomaly_score = ascr.iloc[:, -1].values
+
+                test_ftr, _, _, test_clsnm, test_num, y = get_features_and_sort(path)
+                anomaly_labels = set_anomaly_labels(test_ftr, test_clsnm, test_num, anomaly_class)
+
+                arr_test[j, i] = draw_auc_roc_thresh_test(anomaly_labels, anomaly_score, subdim, gamma, kernel_path)
+
+
+    df = pd.DataFrame(arr)
+    df.to_csv('./data/calculated_features/00_result/kernel_result_val.csv')
+
+    df = pd.DataFrame(arr_test)
+    df.to_csv('./data/calculated_features/00_result/kernel_result_test_using_val.csv')
+
+
+def LinearSM_data_analyze():
+    arr = np.zeros((4, CLASS_NUM))
+    arr_test = np.zeros((4, CLASS_NUM))
+
+    for i in range(CLASS_NUM):
+        anomaly_class = names[i]
+        if anomaly_class != 'table':    #tableはまだ学習できてないので
+            for j in range(4):
+                epocn = epoclist[j]
+                epoc = str(epocn)    # 150, 200, 250, 299
+
+                # validataionデータでAUC最大のparam取得
+                path = './data/calculated_features/model1_' + anomaly_class + '/both_features/c_epoc_' + epoc + '_data' + valn[anomaly_class] + '/'
+                print(path)
+                linear_path = path + 'pred_NA_halfhalf2/'
+                auc_path = linear_path + '000_Subdim_Result.csv'
+                df = pd.read_csv(auc_path)
+                aucs = df.iloc[1:,-1:].values.tolist()
+                max_auc = np.max(aucs)
+                arr[j, i] = max_auc
+                subdim = np.argwhere(aucs == max_auc)[0,0]
+                subdim += 1
+                print('max_subdim:', subdim)
+
+
+                #testデータで最大だったときのAUC取得
+                path = './data/calculated_features/model1_' + anomaly_class + '/both_features/c_epoc_' + epoc + '_data' + testn[anomaly_class] + '/'
+                print(path)
+                linear_path = path + 'pred_NA_halfhalf2/'
+                auc_path = linear_path + '000_Subdim_Result.csv'
+                df = pd.read_csv(auc_path)
+                aucs = df.iloc[1:,-1:].values.tolist()
+                max_auc_in_test = aucs[subdim - 1]
+                print('max_auc_in_test', max_auc_in_test)
+
+                ascr_path = linear_path + 'ftr_score_' + str(subdim) + '.csv'
+                ascr = pd.read_csv(ascr_path)
+                anomaly_score = ascr.iloc[:, -1].values
+
+                test_ftr, _, _, test_clsnm, test_num, y = get_features_and_sort(path)
+                anomaly_labels = set_anomaly_labels(test_ftr, test_clsnm, test_num, anomaly_class)
+
+                arr_test[j, i] = draw_auc_roc_thresh_test_linear(anomaly_labels, anomaly_score, subdim, linear_path)
+
+
+    df = pd.DataFrame(arr)
+    df.to_csv('./data/calculated_features/00_result/linear_result_val.csv')
+
+    df = pd.DataFrame(arr_test)
+    df.to_csv('./data/calculated_features/00_result/linear_result_test_using_val.csv')
+
+kernelSM_data_analyze()
+#LinearSM_data_analyze()
