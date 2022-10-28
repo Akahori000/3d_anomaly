@@ -15,11 +15,20 @@ from sklearn.metrics import auc, roc_curve
 import sys
 
 CLASS_NUM = 7
-testn = {'lamp':'928', 'chair':'756', 'table':'', 'car':'280', 'sofa':'508', 'rifle':'404', 'airplane':'576'} # test のとき
-valn = {'lamp':'464', 'chair':'378', 'table':'', 'car':'140', 'sofa':'254', 'rifle':'204', 'airplane':'288'} # val のとき
+testn = {'lamp':'928', 'chair':'756', 'table':'308', 'car':'280', 'sofa':'508', 'rifle':'404', 'airplane':'576'} # test のとき
+valn = {'lamp':'464', 'chair':'378', 'table':'616', 'car':'140', 'sofa':'254', 'rifle':'204', 'airplane':'288'} # val のとき
 
 names = ['lamp', 'chair', 'table', 'car', 'sofa', 'rifle', 'airplane']
 epoclist = [150, 200, 250, 299]
+
+data_dir = './data/calculated_features_random/'
+#data_dir = './data/calculated_features_farthest/'
+
+#model_type = 'modelAE_'
+model_type = 'model1_'
+
+#save_type = 'AE_'
+save_Type = 'VAE_'
 
 
 
@@ -175,15 +184,14 @@ def kernelSM_data_analyze():
     arr_test = np.zeros((4, CLASS_NUM))
 
     for i in range(CLASS_NUM):
-        #anomaly_class = names[i]
-        anomaly_class = 'car'
-        if anomaly_class != 'table':    #tableはまだ学習できてないので
+        anomaly_class = names[i]
+        if os.path.exists(data_dir + model_type + anomaly_class + '/both_features/'):
             for j in range(4):
                 epocn = epoclist[j]
                 epoc = str(epocn)    # 150, 200, 250, 299
 
 
-                path = './data/calculated_features/modelAE_' + anomaly_class + '/both_features/c_epoc_' + epoc + '_data' + valn[anomaly_class] + '/'
+                path = data_dir + model_type + anomaly_class + '/both_features/c_epoc_' + epoc + '_data' + valn[anomaly_class] + '/'
                 print(path)
                 kernel_path = path + 'kernel_pred2/'
                 auc_path = kernel_path + 'auc.csv'
@@ -193,7 +201,10 @@ def kernelSM_data_analyze():
                 aucs = df.iloc[:, 1:-1].values.tolist()
                 # 最大値とそのindex
                 max_auc = np.max(aucs)
-                idx = np.argwhere(aucs == max_auc).reshape(2)
+                if len(np.argwhere(aucs == max_auc)) > 1:
+                    idx = np.argwhere(aucs == max_auc)[0].reshape(2)
+                else:
+                    idx = np.argwhere(aucs == max_auc).reshape(2)
                 print(max_auc, idx)
                 arr[j, i] = max_auc
 
@@ -213,24 +224,23 @@ def kernelSM_data_analyze():
                 draw_auc_roc_thresh(anomaly_labels, anomaly_score, subdim, gamma, kernel_path)
 
                 # #valから求めたsubdimとgammaからaucなど求める
-                # path = './data/calculated_features/modelAE_' + anomaly_class + '/both_features/c_epoc_' + epoc + '_data' + testn[anomaly_class] + '/'
-                # kernel_path = path + 'kernel_pred2/'
-                # ascr_path = kernel_path + 'auc_subdim' + str(subdim) + '_gamma' + str(gamma) + '.csv'
-                # print(ascr_path)
-                # ascr = pd.read_csv(ascr_path)
-                # anomaly_score = ascr.iloc[:, -1].values
+                path = data_dir + model_type + anomaly_class + '/both_features/c_epoc_' + epoc + '_data' + testn[anomaly_class] + '/'
+                kernel_path = path + 'kernel_pred2/'
+                ascr_path = kernel_path + 'auc_subdim' + str(subdim) + '_gamma' + str(gamma) + '.csv'
+                print(ascr_path)
+                ascr = pd.read_csv(ascr_path)
+                anomaly_score = ascr.iloc[:, -1].values
 
-                # test_ftr, test_clsnm, test_num, y = get_features_and_sort(path)
-                # anomaly_labels = set_anomaly_labels(test_ftr, test_clsnm, test_num, anomaly_class)
+                test_ftr, test_clsnm, test_num, y = get_features_and_sort(path)
+                anomaly_labels = set_anomaly_labels(test_ftr, test_clsnm, test_num, anomaly_class)
 
-                # arr_test[j, i] = draw_auc_roc_thresh_test(anomaly_labels, anomaly_score, subdim, gamma, kernel_path)
-
+                arr_test[j, i] = draw_auc_roc_thresh_test(anomaly_labels, anomaly_score, subdim, gamma, kernel_path)
 
     df = pd.DataFrame(arr)
-    df.to_csv('./data/calculated_features/00_result/AE_kernel_result_val.csv')
+    df.to_csv(data_dir + '00_result/' + save_type + 'kernel_result_val.csv')
 
-    # df = pd.DataFrame(arr_test)
-    # df.to_csv('./data/calculated_features/00_result/AE_kernel_result_test_using_val.csv')
+    df = pd.DataFrame(arr_test)
+    df.to_csv(data_dir + '00_result/' + save_type + 'kernel_result_test_using_val.csv')
 
 
 def LinearSM_data_analyze():
@@ -239,14 +249,13 @@ def LinearSM_data_analyze():
 
     for i in range(CLASS_NUM):
         anomaly_class = names[i]
-        anomaly_class = 'car'
-        if anomaly_class != 'table':    #tableはまだ学習できてないので
+        if os.path.exists(data_dir + model_type + anomaly_class + '/both_features/'):
             for j in range(4):
                 epocn = epoclist[j]
                 epoc = str(epocn)    # 150, 200, 250, 299
 
                 # validataionデータでAUC最大のparam取得
-                path = './data/calculated_features/modelAE_' + anomaly_class + '/both_features/c_epoc_' + epoc + '_data' + valn[anomaly_class] + '/'
+                path = data_dir + model_type + anomaly_class + '/both_features/c_epoc_' + epoc + '_data' + valn[anomaly_class] + '/'
                 print(path)
                 linear_path = path + 'pred_NA_halfhalf2/'
                 auc_path = linear_path + '000_Subdim_Result.csv'
@@ -260,7 +269,7 @@ def LinearSM_data_analyze():
 
 
                 #testデータで最大だったときのAUC取得
-                path = './data/calculated_features/modelAE_' + anomaly_class + '/both_features/c_epoc_' + epoc + '_data' + testn[anomaly_class] + '/'
+                path = data_dir + model_type + anomaly_class + '/both_features/c_epoc_' + epoc + '_data' + testn[anomaly_class] + '/'
                 print(path)
                 linear_path = path + 'pred_NA_halfhalf2/'
                 auc_path = linear_path + '000_Subdim_Result.csv'
@@ -280,10 +289,11 @@ def LinearSM_data_analyze():
 
 
     df = pd.DataFrame(arr)
-    df.to_csv('./data/calculated_features/00_result/AE_linear_result_val.csv')
+    df.to_csv(data_dir + '00_result/' + save_type + 'linear_result_val.csv')
 
     df = pd.DataFrame(arr_test)
-    df.to_csv('./data/calculated_features/00_result/AE_linear_result_test_using_val.csv')
+    df.to_csv(data_dir + '00_result/' + save_type + 'linear_result_test_using_val.csv')
 
-#kernelSM_data_analyze()
+
+kernelSM_data_analyze()
 LinearSM_data_analyze()
