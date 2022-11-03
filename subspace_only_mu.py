@@ -25,17 +25,26 @@ Anomaly_object = args[1]
 #Anomaly_object = 'airplane' # ←ここでobject指定すること!
 test_folder = args[2]
 #test_folder = 'c_epoc_299_data576' #←例
+testtype = args[3]
+#testtype = 'test' or 'val'
+dic_folder = args[4]
+#test_folder = 'c_epoc_299_data7119' #←例
 
-dictionary_dir =  './data/calculated_features/modelAE_' + Anomaly_object + '/both_features/c_epoc_299_data7119/'
-test_dir = './data/calculated_features/modelAE_' + Anomaly_object + '/both_features/' + test_folder + '/'
+dictionary_dir =  './data/calculated_features_random/modelAE_' + Anomaly_object + '/both_features/' + dic_folder + '/'
+test_dir = './data/calculated_features_random/modelAE_' + Anomaly_object + '/both_features/' + test_folder + '/'
 knl_dir = test_dir + 'kernel_pred2/'
 lnr_dir = test_dir + 'pred/'
 lnr_dir_hlf = test_dir + 'pred_NA_halfhalf2/' # これが2の方が|| A@A.T@x|| で求めた方
 
+print('test_folder = ', test_folder, 'dic_folder = ', dic_folder)
+
 dic_names = {'1622': 'lamp', '1323': 'chair', '1078':'table', '490':'car', '890':'sofa', '709': 'rifle', '1007': 'airplane'}
-dic_names_test = {'464': 'lamp', '378': 'chair', '308':'table', '140':'car', '254':'sofa', '202': 'rifle', '288': 'airplane'}
-#dic_names_test = {'232': 'lamp', '189': 'chair', '154':'table', '70':'car', '127':'sofa', '102': 'rifle', '144': 'airplane'} # val用
 names = ['lamp', 'chair', 'table', 'car', 'sofa', 'rifle', 'airplane']
+
+if testtype == 'test':
+    dic_names_test = {'464': 'lamp', '378': 'chair', '308':'table', '140':'car', '254':'sofa', '202': 'rifle', '288': 'airplane'}
+elif testtype == 'val':
+    dic_names_test = {'232': 'lamp', '189': 'chair', '154':'table', '70':'car', '127':'sofa', '102': 'rifle', '144': 'airplane'} # val用
 
 if not os.path.exists(lnr_dir):
     os.makedirs(lnr_dir)
@@ -503,9 +512,9 @@ def kernel_subspace_test():
 
 if Anomaly_object in names:
 
-    # file_dir = linear_subspace_anomaly_detection()
-    # print(file_dir)
-    # get_the_max_auc_roc(file_dir) # このfile_dirは'000_Subdim_Result.csv'のある場所　AUCの測り方によってちがう
+    file_dir = linear_subspace_anomaly_detection()
+    print(file_dir)
+    get_the_max_auc_roc(file_dir) # このfile_dirは'000_Subdim_Result.csv'のある場所　AUCの測り方によってちがう
     
     kernel_subspace_test()
 else:
