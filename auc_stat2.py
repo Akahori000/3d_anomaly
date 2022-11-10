@@ -15,20 +15,24 @@ from sklearn.metrics import auc, roc_curve
 import sys
 
 CLASS_NUM = 7
-testn = {'lamp':'928', 'chair':'756', 'table':'308', 'car':'280', 'sofa':'508', 'rifle':'404', 'airplane':'576'} # test のとき
-valn = {'lamp':'464', 'chair':'378', 'table':'616', 'car':'140', 'sofa':'254', 'rifle':'204', 'airplane':'288'} # val のとき
+# testn = {'lamp':'928', 'chair':'756', 'table':'308', 'car':'280', 'sofa':'508', 'rifle':'404', 'airplane':'576'} # test のとき
+# valn = {'lamp':'464', 'chair':'378', 'table':'616', 'car':'140', 'sofa':'254', 'rifle':'204', 'airplane':'288'} # val のとき
 
-names = ['lamp', 'chair', 'table', 'car', 'sofa', 'rifle', 'airplane']
+# names = ['lamp', 'chair', 'table', 'car', 'sofa', 'rifle', 'airplane']
+
+testn = {'bookshelf':'180', 'laptop':'184', 'knife':'170', 'train':'156', 'motorbike':'134', 'guitar':'320', 'faucet':'298'} # test のとき
+valn = {'bookshelf':'90', 'laptop':'92', 'knife':'84', 'train':'78', 'motorbike':'68', 'guitar':'160', 'faucet':'150'} # val のとき
+
+names = ['bookshelf', 'laptop', 'knife', 'train', 'motorbike', 'guitar', 'faucet']
 epoclist = [150, 200, 250, 299]
 
-data_dir = './data/calculated_features_random/'
-#data_dir = './data/calculated_features_farthest/'
+data_dir = './data/objset2/calculated_features/'
 
-#model_type = 'modelAE_'
-model_type = 'model1_'
+model_type = 'modelAE_'
+#model_type = 'model1_'
 
-#save_type = 'AE_'
-save_Type = 'VAE_'
+save_type = 'AE_'
+#save_type = 'VAE_'
 
 
 
@@ -197,44 +201,47 @@ def kernelSM_data_analyze():
                 auc_path = kernel_path + 'auc.csv'
 
 
-                df = pd.read_csv(auc_path)
-                aucs = df.iloc[:, 1:-1].values.tolist()
-                # 最大値とそのindex
-                max_auc = np.max(aucs)
-                if len(np.argwhere(aucs == max_auc)) > 1:
-                    idx = np.argwhere(aucs == max_auc)[0].reshape(2)
-                else:
-                    idx = np.argwhere(aucs == max_auc).reshape(2)
-                print(max_auc, idx)
-                arr[j, i] = max_auc
+                if os.path.exists(auc_path) == True:
+                    df = pd.read_csv(auc_path)
+                    aucs = df.iloc[:, 1:-1].values.tolist()
+                    # 最大値とそのindex
+                    max_auc = np.max(aucs)
+                    if len(np.argwhere(aucs == max_auc)) > 1:
+                        idx = np.argwhere(aucs == max_auc)[0].reshape(2)
+                    else:
+                        idx = np.argwhere(aucs == max_auc).reshape(2)
+                    print(max_auc, idx)
+                    arr[j, i] = max_auc
 
-                # subdimとgamma
-                subdim = idx[1] + 1
-                gamma = idx[0] * 10 + 1
-                print('subdim:', subdim, 'gamma:', gamma)
-                ascr_path = kernel_path + 'auc_subdim' + str(subdim) + '_gamma' + str(gamma) + '.csv'
+                    # subdimとgamma
+                    subdim = idx[1] + 1
+                    gamma = idx[0] * 10 + 1
+                    print('subdim:', subdim, 'gamma:', gamma)
+                    ascr_path = kernel_path + 'auc_subdim' + str(subdim) + '_gamma' + str(gamma) + '.csv'
 
-                ascr = pd.read_csv(ascr_path)
-                anomaly_score = ascr.iloc[:, -1].values
-                #print(anomaly_score)
+                    ascr = pd.read_csv(ascr_path)
+                    anomaly_score = ascr.iloc[:, -1].values
+                    #print(anomaly_score)
 
-                test_ftr, test_clsnm, test_num, y = get_features_and_sort(path)
-                anomaly_labels = set_anomaly_labels(test_ftr, test_clsnm, test_num, anomaly_class)
+                    test_ftr, test_clsnm, test_num, y = get_features_and_sort(path)
+                    anomaly_labels = set_anomaly_labels(test_ftr, test_clsnm, test_num, anomaly_class)
 
-                draw_auc_roc_thresh(anomaly_labels, anomaly_score, subdim, gamma, kernel_path)
+                    draw_auc_roc_thresh(anomaly_labels, anomaly_score, subdim, gamma, kernel_path)
 
-                # #valから求めたsubdimとgammaからaucなど求める
-                path = data_dir + model_type + anomaly_class + '/both_features/c_epoc_' + epoc + '_data' + testn[anomaly_class] + '/'
-                kernel_path = path + 'kernel_pred2/'
-                ascr_path = kernel_path + 'auc_subdim' + str(subdim) + '_gamma' + str(gamma) + '.csv'
-                print(ascr_path)
-                ascr = pd.read_csv(ascr_path)
-                anomaly_score = ascr.iloc[:, -1].values
+                    # #valから求めたsubdimとgammaからaucなど求める
+                    path = data_dir + model_type + anomaly_class + '/both_features/c_epoc_' + epoc + '_data' + testn[anomaly_class] + '/'
+                    kernel_path = path + 'kernel_pred2/'
+                    ascr_path = kernel_path + 'auc_subdim' + str(subdim) + '_gamma' + str(gamma) + '.csv'
+                    print(ascr_path)
+                    if os.path.exists(ascr_path) == True:
+                        ascr = pd.read_csv(ascr_path)
+                        anomaly_score = ascr.iloc[:, -1].values
 
-                test_ftr, test_clsnm, test_num, y = get_features_and_sort(path)
-                anomaly_labels = set_anomaly_labels(test_ftr, test_clsnm, test_num, anomaly_class)
+                        test_ftr, test_clsnm, test_num, y = get_features_and_sort(path)
+                        anomaly_labels = set_anomaly_labels(test_ftr, test_clsnm, test_num, anomaly_class)
 
-                arr_test[j, i] = draw_auc_roc_thresh_test(anomaly_labels, anomaly_score, subdim, gamma, kernel_path)
+                        arr_test[j, i] = draw_auc_roc_thresh_test(anomaly_labels, anomaly_score, subdim, gamma, kernel_path)
+
 
     df = pd.DataFrame(arr)
     df.to_csv(data_dir + '00_result/' + save_type + 'kernel_result_val.csv')
@@ -259,6 +266,7 @@ def LinearSM_data_analyze():
                 print(path)
                 linear_path = path + 'pred_NA_halfhalf2/'
                 auc_path = linear_path + '000_Subdim_Result.csv'
+
                 df = pd.read_csv(auc_path)
                 aucs = df.iloc[1:,-1:].values.tolist()
                 max_auc = np.max(aucs)
