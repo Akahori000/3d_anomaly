@@ -429,6 +429,7 @@ def kernel_subspace_test():
     # kernel PCA
     ksm.save_already_calculated_ones(knl_dir)
     ksm.kernel_subspace_anomaly_detection_all(X_train_mu, labels, test_mu.T, y_test, anomaly_labels, knl_dir)
+    ksm.save_already_calculated_ones(knl_dir)
     #ksm.calc_kernel_subspace_bases(X_train_mu, labels, test_mu.T, y_test, anomaly_labels, knl_dir)
 
     print('Done')
