@@ -28,8 +28,8 @@ dic_folder = args[4]
 #dic_folder = 'c_epoc_299_data2521' #←例
 
 
-dictionary_dir =  './data/shapenet/objset3/calculated_features_all/modelAE_' + Anomaly_object + '/both_features/' + dic_folder + '/'
-test_dir = './data/shapenet/objset3/calculated_features_all/modelAE_' + Anomaly_object + '/both_features/' + test_folder + '/'
+dictionary_dir =  './data/objset3/calculated_features_all/modelAE_' + Anomaly_object + '/both_features/' + dic_folder + '/'
+test_dir = './data/objset3/calculated_features_all/modelAE_' + Anomaly_object + '/both_features/' + test_folder + '/'
 knl_dir = test_dir + 'kernel_pred_all/'
 lnr_dir = test_dir + 'pred/'
 lnr_dir_hlf = test_dir + 'pred_NA_halfhalf_all/' # これが2の方が|| A@A.T@x|| で求めた方
