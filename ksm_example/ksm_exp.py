@@ -101,7 +101,7 @@ def kernel_subspace_anomaly_detection_all(X_train, labels, X_test, y_test, anoma
     n_subdims = list(n_subdims)
     n_subdims.extend(temp)
 
-    gammas = [0.01, 0.0236, 0.05, 0.1, 0.2, 0.2236, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8,0.9,1,1,2,3,4,5,6,7,8,9,10,11,12,14,16,18,20,25,31,41,51,61,71,81,91,101,131,151,171,201,251,291]
+    gammas = [0.01, 0.0236, 0.05, 0.1, 0.2, 0.2236, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8,0.9,1,2,3,4,5,6,7,8,9,10,11,12,14,16,18,20,25,31,41,51,61,71,81,91,101,131,151,171,201,251,291]
     # #gammas = [0.01, 0.02, 0.03, 0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.1, 0.2, 0.2236, 0.3,  0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 
     #           11, 21, 31, 41, 51, 61, 71, 81, 91, 101, 111, 121, 131, 141, 151, 161, 171, 181, 191, 201, 211, 221, 231, 241, 251, 261, 271, 281, 291]
 
@@ -113,7 +113,8 @@ def kernel_subspace_anomaly_detection_all(X_train, labels, X_test, y_test, anoma
     for i, n_subdim in enumerate(n_subdims):
         for j, gamma in enumerate(gammas):
 
-            if os.path.exists(knl_dir + 'auc_subdim' + str(n_subdim) + '_gamma' + str(gamma) +  '.csv') == False:
+            if ((os.path.exists(knl_dir + 'auc_subdim' + str(n_subdim) + '_gamma' + str(gamma) +  '.csv') == False) and
+                (os.path.exists(knl_dir + 'auc_subdim' + str(n_subdim) + '_gamma' + str(gamma) + ".0" +  '.csv') == False)) :
                 # kernel_bases = [
                 #    kn.kernel_subspace_bases(X_class, n_subdim, gamma) for X_class in X_train
                 # ]
