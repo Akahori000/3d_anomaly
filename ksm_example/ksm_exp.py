@@ -1,6 +1,6 @@
 # %%
 import time
-
+import os
 import numpy as np
 import pandas as pd
 from scipy.io import loadmat
@@ -66,17 +66,116 @@ def calc_anomaly_score(kernel_similarities):
     return  anomaly_score
 
 
+def save_already_calculated_ones(knl_dir):
+
+    search_subdim = range(1, 150, 1)
+    search_gammas = [0.01, 0.02, 0.03, 0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.1, 0.2, 0.2236, 0.3,  0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 
+                     11, 21, 31, 41, 51, 61, 71, 81, 91, 101, 111, 121, 131, 141, 151, 161, 171, 181, 191, 201, 211, 221, 231, 241, 251, 261, 271, 281, 291]
+    
+    aucs = np.zeros((len(search_gammas), len(search_subdim)))
+    for cnti,i in enumerate(search_subdim):
+        for cntj, j in enumerate(search_gammas):
+            if os.path.exists(knl_dir + 'auc_subdim' + str(i) + '_gamma' + str(j) +  '.csv'):
+                df = pd.read_csv(knl_dir + 'auc_subdim' + str(i) + '_gamma' + str(j) +  '.csv')
+                scrs = df.values[:,2]
+                lbls = df.values[:,1]
+                fpr, tpr, th = roc_curve(lbls, scrs)
+                aucs[cntj, cnti] = auc(fpr, tpr)
+    df1 = pd.DataFrame(aucs)
+    df1.to_csv(knl_dir + '0_current_aucs.csv')
+
+
+
+def kernel_subspace_anomaly_detection_all(X_train, labels, X_test, y_test, anomaly_labels, knl_dir):
+    #n_subdims = range(1, 150, 1)
+    #gammas = range(1, 300, 10)
+
+    search_subdim = range(1, 150, 1)
+    search_gammas = [0.01, 0.02, 0.03, 0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.1, 0.2, 0.2236, 0.3,  0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 
+                     11, 21, 31, 41, 51, 61, 71, 81, 91, 101, 111, 121, 131, 141, 151, 161, 171, 181, 191, 201, 211, 221, 231, 241, 251, 261, 271, 281, 291]
+    
+
+    n_subdims = range(1, 150, 1)
+    gammas = [0.01, 0.0236, 0.05, 0.1, 0.2, 0.2236, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8,0.9,1,1,2,3,4,5,6,7,8,9,10,11,12,14,16,18,20,25,31,41,51,61,71,81,91,101,131,151,171,201,251,291]
+    # #gammas = [0.01, 0.02, 0.03, 0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.1, 0.2, 0.2236, 0.3,  0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 
+    #           11, 21, 31, 41, 51, 61, 71, 81, 91, 101, 111, 121, 131, 141, 151, 161, 171, 181, 191, 201, 211, 221, 231, 241, 251, 261, 271, 281, 291]
+
+
+    df = pd.DataFrame(columns=["n_subdims", "gamma", "acc", "weighted_f1", "macro_f1", "fit_time", "predict_time"])
+    ftr_roc_auc = np.zeros((len(gammas), len(n_subdims)))
+    thresh = np.zeros((len(gammas), len(n_subdims)))
+
+    for i, n_subdim in enumerate(n_subdims):
+        for j, gamma in enumerate(gammas):
+
+            if os.path.exists(knl_dir + 'auc_subdim' + str(n_subdim) + '_gamma' + str(gamma) +  '.csv') == False:
+                # kernel_bases = [
+                #    kn.kernel_subspace_bases(X_class, n_subdim, gamma) for X_class in X_train
+                # ]
+                print("X_train_len", X_train.shape, "gamma", gamma, "n_subdim", n_subdim)
+                kernel_bases = [
+                kn.kernel_subspace_bases(X_train, n_subdim, gamma)
+                ]
+                print('kernel_basis', len(kernel_bases))
+                kernel_bases = np.array(kernel_bases)
+                #print(f"Kernel fit time: {fit_time}")
+
+                # kernel_similarities = [
+                #     kn.kernel_similarity(_kernel_base, _X, X_test)
+                #     for _kernel_base, _X in zip(kernel_bases, X_train)
+                # ]
+
+                kernel_similarities = [
+                    kn.kernel_similarity(kernel_bases.reshape(kernel_bases.shape[1],kernel_bases.shape[2]), X_train, X_test)
+                ]
+                kernel_similarities = np.vstack(kernel_similarities).T
+                # print('kernelsimilarities', len(kernel_similarities))
+
+                # 正常クラスのみでanomalyscoreを出す
+                #pred = calc_anomaly_score(kernel_similarities[:, :(kernel_similarities.shape[1] - 1)])
+                pred = np.ones(len(kernel_similarities)) - kernel_similarities.reshape(len(kernel_similarities))
+                
+                # AUCの計算
+                _min = np.array(min(pred))
+                _max = np.array(max(pred))
+
+                re_scaled = (pred - _min) / (_max - _min)
+                re_scaled = np.array(re_scaled, dtype=float)
+                fpr, tpr, th = roc_curve(anomaly_labels, re_scaled)
+                ftr_roc_auc[j, i] = auc(fpr, tpr)
+                print(f"Subspace dimensions: {n_subdim}", f"Gamma: {gamma}", 'AUC', ftr_roc_auc[j, i])
+
+                # plt.plot(fpr, tpr, marker='o')
+                # plt.xlabel('FPR: False positive rate')
+                # plt.ylabel('TPR: True positive rate')
+                # plt.grid()
+                # plt.savefig(knl_dir + 'ROCCurve_subdim' + str(n_subdim) + '_gamma' + str(gamma) + '.png')
+                # plt.clf()
+
+                
+                df3 = pd.DataFrame(np.vstack([anomaly_labels, re_scaled]).T)
+                df3.to_csv(knl_dir + 'auc_subdim' + str(n_subdim) + '_gamma' + str(gamma) +  '.csv')
+                df3 = pd.DataFrame(th)
+                df3.to_csv(knl_dir + 'thresh_subdim' + str(n_subdim) + '_gamma' + str(gamma) +  '.csv')
+
+    df1 = pd.DataFrame(ftr_roc_auc)
+    df1.to_csv(knl_dir + '0_auc_gamma_all.csv')
+
+    #df1 = pd.DataFrame(ftr_roc_auc)
+    #df1.to_csv(knl_dir + 'auc.csv')
+
+
 
 def kernel_subspace_anomaly_detection(X_train, labels, X_test, y_test, anomaly_labels, knl_dir):
     #n_subdims = range(1, 150, 1)
     #gammas = range(1, 300, 10)
 
     n_subdims = range(1, 150, 1)
-    gammas = range(1, 300, 10)
+    gammas = [0.01, 0.05, 0.1, 0.2236, 0.5, 1, 5, 10, 11, 21, 31, 41, 51, 61, 71, 81, 91, 101, 111, 121, 131, 141, 151, 161, 171, 181, 191, 201, 211, 221, 231, 241, 251, 261, 271, 281, 291]
 
     df = pd.DataFrame(columns=["n_subdims", "gamma", "acc", "weighted_f1", "macro_f1", "fit_time", "predict_time"])
-    ftr_roc_auc = np.zeros((-(-(300-1)//10), 150))
-    thresh = np.zeros((-(-(300-1)//10), 150))
+    ftr_roc_auc = np.zeros((len(gammas), 150))
+    thresh = np.zeros((len(gammas), 150))
 
     for i, n_subdim in enumerate(n_subdims):
         for j, gamma in enumerate(gammas):
@@ -121,8 +220,10 @@ def kernel_subspace_anomaly_detection(X_train, labels, X_test, y_test, anomaly_l
             df3.to_csv(knl_dir + 'thresh_subdim' + str(n_subdim) + '_gamma' + str(gamma) +  '.csv')
 
     df1 = pd.DataFrame(ftr_roc_auc)
-    df1.to_csv(knl_dir + 'auc.csv')
+    df1.to_csv(knl_dir + '0_auc_gamma_all.csv')
 
+    #df1 = pd.DataFrame(ftr_roc_auc)
+    #df1.to_csv(knl_dir + 'auc.csv')
 
 
 def calc_kernel_subspace_bases(X_train, labels, X_test, y_test, anomaly_labels, knl_dir):
@@ -198,3 +299,4 @@ def calc_kernel_subspace_bases(X_train, labels, X_test, y_test, anomaly_labels, 
 
     df1 = pd.DataFrame(ftr_roc_auc)
     df1.to_csv(knl_dir + 'auc1.csv')
+# %%

@@ -15,7 +15,7 @@ import sys
 from ksm_example import ksm_exp as ksm
 
 
-CLASS_NUM = 7
+CLASS_NUM = 14
 args = sys.argv
 Anomaly_object = args[1]
 #Anomaly_object = 'airplane' # ←ここでobject指定すること!
@@ -28,18 +28,18 @@ dic_folder = args[4]
 #dic_folder = 'c_epoc_299_data2521' #←例
 
 
-dictionary_dir =  './data/calculated_features_random_batchsize40_temp/modelAE_' + Anomaly_object + '/both_features/' + dic_folder + '/'
-test_dir = './data/calculated_features_random_batchsize40_temp/modelAE_' + Anomaly_object + '/both_features/' + test_folder + '/'
+dictionary_dir =  './data/shapenet/objset3/calculated_features_all/modelAE_' + Anomaly_object + '/both_features/' + dic_folder + '/'
+test_dir = './data/shapenet/objset3/calculated_features_all/modelAE_' + Anomaly_object + '/both_features/' + test_folder + '/'
 knl_dir = test_dir + 'kernel_pred_all/'
 lnr_dir = test_dir + 'pred/'
 lnr_dir_hlf = test_dir + 'pred_NA_halfhalf_all/' # これが2の方が|| A@A.T@x|| で求めた方
 
-# dic_names = {'1622': 'lamp', '1323': 'chair', '1078':'table', '490':'car', '890':'sofa', '709': 'rifle', '1007': 'airplane', '317': 'bookshelf', '322': 'laptop', '297':'knife', '272':'train', '236':'motorbike', '557': 'guitar', '520': 'faucet'}
-# if test_way == 'test':
-#     dic_names_test = {'464': 'lamp', '378': 'chair', '308':'table', '140':'car', '254':'sofa', '202': 'rifle', '288': 'airplane', '90': 'bookshelf', '92': 'laptop', '85':'knife', '78':'train', '67':'motorbike', '160': 'guitar', '149': 'faucet'}
-# else:
-#     dic_names_test = {'232': 'lamp', '189': 'chair', '154':'table', '70':'car', '127':'sofa', '102': 'rifle', '144': 'airplane', '45': 'bookshelf', '46': 'laptop', '42':'knife', '39':'train', '34':'motorbike', '80': 'guitar', '75': 'faucet'} # val用
-# names = ['lamp', 'chair', 'table', 'car', 'sofa', 'rifle', 'airplane', 'bookshelf', 'laptop', 'knife', 'train', 'motorbike', 'guitar', 'faucet']
+dic_names = {'1622': 'lamp', '1323': 'chair', '1078':'table', '490':'car', '890':'sofa', '709': 'rifle', '1007': 'airplane', '317': 'bookshelf', '322': 'laptop', '297':'knife', '272':'train', '236':'motorbike', '557': 'guitar', '520': 'faucet'}
+if test_way == 'test':
+    dic_names_test = {'464': 'lamp', '378': 'chair', '308':'table', '140':'car', '254':'sofa', '202': 'rifle', '288': 'airplane', '90': 'bookshelf', '92': 'laptop', '85':'knife', '78':'train', '67':'motorbike', '160': 'guitar', '149': 'faucet'}
+else:
+    dic_names_test = {'232': 'lamp', '189': 'chair', '154':'table', '70':'car', '127':'sofa', '102': 'rifle', '144': 'airplane', '45': 'bookshelf', '46': 'laptop', '42':'knife', '39':'train', '34':'motorbike', '80': 'guitar', '75': 'faucet'} # val用
+names = ['lamp', 'chair', 'table', 'car', 'sofa', 'rifle', 'airplane', 'bookshelf', 'laptop', 'knife', 'train', 'motorbike', 'guitar', 'faucet']
 
 # dic_names = {'317': 'bookshelf', '322': 'laptop', '297':'knife', '272':'train', '236':'motorbike', '557': 'guitar', '520': 'faucet'}
 # if test_way == 'test':
@@ -49,15 +49,15 @@ lnr_dir_hlf = test_dir + 'pred_NA_halfhalf_all/' # これが2の方が|| A@A.T@x
 # names = ['bookshelf', 'laptop', 'knife', 'train', 'motorbike', 'guitar', 'faucet']
 
 
-dic_names = {'1622': 'lamp', '1323': 'chair', '1078':'table', '490':'car', '890':'sofa', '709': 'rifle', '1007': 'airplane'}
-names = ['lamp', 'chair', 'table', 'car', 'sofa', 'rifle', 'airplane']
+# dic_names = {'1622': 'lamp', '1323': 'chair', '1078':'table', '490':'car', '890':'sofa', '709': 'rifle', '1007': 'airplane'}
+# names = ['lamp', 'chair', 'table', 'car', 'sofa', 'rifle', 'airplane']
 
-if test_way == 'test':
-    dic_names_test = {'464': 'lamp', '378': 'chair', '308':'table', '140':'car', '254':'sofa', '202': 'rifle', '288': 'airplane'}
-elif test_way == 'val':
-    dic_names_test = {'232': 'lamp', '189': 'chair', '154':'table', '70':'car', '127':'sofa', '102': 'rifle', '144': 'airplane'} # val用
+# if test_way == 'test':
+#     dic_names_test = {'464': 'lamp', '378': 'chair', '308':'table', '140':'car', '254':'sofa', '202': 'rifle', '288': 'airplane'}
+# elif test_way == 'val':
+#     dic_names_test = {'232': 'lamp', '189': 'chair', '154':'table', '70':'car', '127':'sofa', '102': 'rifle', '144': 'airplane'} # val用
 
-test_data_sum = 2755 #c_epoc_100_data721 みたいな全テストデータの数 
+test_data_sum = 9640 #c_epoc_100_data2755 みたいな全テストデータの数  objset1:2755, objset2:721, objset3: 9640
 
 if not os.path.exists(lnr_dir):
     os.makedirs(lnr_dir)
@@ -427,7 +427,8 @@ def kernel_subspace_test():
             print(k, dic_names_test[str(test_clsnm[i])],'\t', anomaly_labels[test_num[i]])
 
     # kernel PCA
-    ksm.kernel_subspace_anomaly_detection(X_train_mu, labels, test_mu.T, y_test, anomaly_labels, knl_dir)
+    ksm.save_already_calculated_ones(knl_dir)
+    ksm.kernel_subspace_anomaly_detection_all(X_train_mu, labels, test_mu.T, y_test, anomaly_labels, knl_dir)
     #ksm.calc_kernel_subspace_bases(X_train_mu, labels, test_mu.T, y_test, anomaly_labels, knl_dir)
 
     print('Done')

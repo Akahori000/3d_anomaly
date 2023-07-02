@@ -14,8 +14,10 @@
             "console": "integratedTerminal",
             "justMyCode": true,
             "args": [
-                "airplane",
-                "c_epoc_150_data288"
+                "chair",
+                "c_epoc_299_data378",
+                "val",
+                "c_epoc_299_data9640"
             ],
         }
     ]
