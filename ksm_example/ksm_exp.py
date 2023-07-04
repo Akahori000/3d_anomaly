@@ -70,7 +70,7 @@ def save_already_calculated_ones(knl_dir):
 
     search_subdim = range(1, 150, 1)
     search_gammas = [0.01, 0.02, 0.03, 0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.1, 0.2, 0.2236, 0.3,  0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 
-                     11, 21, 31, 41, 51, 61, 71, 81, 91, 101, 111, 121, 131, 141, 151, 161, 171, 181, 191, 201, 211, 221, 231, 241, 251, 261, 271, 281, 291]
+                     11, 12, 14, 16, 18, 20, 21, 25, 31, 41, 51, 61, 71, 81, 91, 101, 111, 121, 131, 141, 151, 161, 171, 181, 191, 201, 211, 221, 231, 241, 251, 261, 271, 281, 291]
     
     aucs = np.zeros((len(search_gammas), len(search_subdim)))
     for cnti,i in enumerate(search_subdim):
@@ -82,18 +82,15 @@ def save_already_calculated_ones(knl_dir):
                 fpr, tpr, th = roc_curve(lbls, scrs)
                 aucs[cntj, cnti] = auc(fpr, tpr)
     df1 = pd.DataFrame(aucs)
+    df1 = df1.set_axis(search_subdim, axis=1)
+    df1 = df1.set_axis(search_gammas, axis=0)
     df1.to_csv(knl_dir + '0_current_aucs.csv')
 
 
 
 def kernel_subspace_anomaly_detection_all(X_train, labels, X_test, y_test, anomaly_labels, knl_dir):
     #n_subdims = range(1, 150, 1)
-    #gammas = range(1, 300, 10)
-
-    search_subdim = range(1, 150, 1)
-    search_gammas = [0.01, 0.02, 0.03, 0.04, 0.05, 0.06, 0.07, 0.08, 0.09, 0.1, 0.2, 0.2236, 0.3,  0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 
-                     11, 21, 31, 41, 51, 61, 71, 81, 91, 101, 111, 121, 131, 141, 151, 161, 171, 181, 191, 201, 211, 221, 231, 241, 251, 261, 271, 281, 291]
-    
+    #gammas = range(1, 300, 10)    
 
     # n_subdims = range(1, 150, 1)
     n_subdims = range(1, 90, 1)
